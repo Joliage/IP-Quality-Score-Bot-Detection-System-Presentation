@@ -1,0 +1,2481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>IPQS Bot Detection — DSpace SOLR Statistics Filtering</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,700;0,9..40,800;1,9..40,400&family=JetBrains+Mono:wght@400;700&display=swap');
+    :root {
+      --bg:#1a0a14;--panel:rgba(255,255,255,.055);--line:rgba(255,255,255,.14);
+      --text:#f9eef3;--muted:#cba8b8;--soft:#6e4d5a;
+      --accent:#ffb3d9;--gold:#ff8c66;--red:#C0392B;--forest:#c2185b;--blue:#5B9BD5;
+      --shadow:0 24px 60px rgba(0,0,0,.45);--radius:10px;
+      font-family:'DM Sans',ui-sans-serif,system-ui,sans-serif;
+    }
+    *{box-sizing:border-box;}
+    html,body{height:100%;margin:0;overflow:hidden;}
+    body{color:var(--text);background:radial-gradient(circle at 18% 8%,rgba(194,24,91,.25),transparent 36%),radial-gradient(circle at 82% 6%,rgba(255,179,217,.12),transparent 30%),radial-gradient(circle at 50% 90%,rgba(255,140,102,.08),transparent 40%),linear-gradient(160deg,#1a0a14 0%,#200d1a 50%,#120810 100%);}
+    button{font:inherit;color:inherit;}
+    .deck{height:100vh;display:grid;grid-template-rows:1fr auto;}
+    .slides{position:relative;min-height:0;}
+    .slide{position:absolute;inset:0;padding:clamp(20px,3.5vw,50px);display:grid;grid-template-rows:auto 1fr;gap:18px;opacity:0;pointer-events:none;transform:translateX(28px) scale(.988);transition:opacity .3s,transform .3s;}
+    .slide.active{opacity:1;pointer-events:auto;transform:none;}
+    .slide-head{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;border-bottom:1px solid var(--line);padding-bottom:14px;}
+    .kicker{margin:0 0 6px;color:var(--accent);font-size:13px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;}
+    h1,h2,h3{margin:0;letter-spacing:-.01em;}
+    h1{font-size:clamp(36px,6vw,76px);line-height:.95;max-width:960px;}
+    h2{font-size:clamp(26px,3.5vw,48px);line-height:1.05;}
+    h3{font-size:clamp(16px,1.8vw,22px);}
+    p{margin:0;color:var(--muted);font-size:clamp(15px,1.3vw,19px);line-height:1.5;}
+    .slide-no{color:var(--soft);font-weight:800;font-size:14px;white-space:nowrap;}
+    .content{min-height:0;display:grid;gap:16px;align-content:center;}
+    .two{grid-template-columns:1fr 1fr;align-items:stretch;}
+    .three{grid-template-columns:repeat(3,1fr);}
+    .split-wide{grid-template-columns:1.1fr .9fr;}
+    .grid{display:grid;gap:14px;}
+    .panel{border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow);border-radius:var(--radius);padding:clamp(14px,1.8vw,24px);min-width:0;overflow:auto;}
+    .panel h3{margin-bottom:8px;}
+    .panel p+p{margin-top:8px;}
+    .accent-green{border-color:rgba(194,24,91,.55);}
+    .accent-moss{border-color:rgba(255,179,217,.45);}
+    .accent-orange{border-color:rgba(255,140,102,.45);}
+    .accent-red{border-color:rgba(192,57,43,.45);}
+    .hero-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;}
+    .pill{border:1px solid var(--line);background:rgba(255,255,255,.07);border-radius:999px;padding:8px 14px;color:var(--text);font-size:14px;font-weight:700;}
+    .big-number{display:block;color:var(--text);font-size:clamp(30px,4.5vw,58px);line-height:1;font-weight:850;margin-bottom:6px;}
+    .label{color:var(--muted);font-size:14px;line-height:1.35;}
+    .list{display:grid;gap:11px;margin:0;padding:0;list-style:none;}
+    .list li{display:flex;gap:10px;color:var(--muted);line-height:1.55;font-size:clamp(13px,1.15vw,16px);}
+    .list li::before{content:"";min-width:8px;width:8px;height:8px;border-radius:50%;margin-top:8px;flex-shrink:0;background:var(--accent);box-shadow:0 0 16px rgba(255,179,217,.5);}
+    .code-block{font-family:'JetBrains Mono',monospace;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:var(--radius);padding:14px;color:#e8dcc8;font-size:clamp(11px,.92vw,14px);line-height:1.55;white-space:pre-wrap;overflow:auto;max-height:100%;tab-size:4;}
+    .pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+    .step{border:1px solid var(--line);background:rgba(255,255,255,.06);border-radius:var(--radius);padding:14px;min-height:100px;}
+    .step strong{display:block;margin-bottom:6px;color:var(--text);}
+    .step span{color:var(--muted);font-size:13px;line-height:1.35;}
+    .table{width:100%;border-collapse:collapse;color:var(--muted);font-size:clamp(13px,1.1vw,16px);}
+    .table th,.table td{text-align:left;border-bottom:1px solid var(--line);padding:10px 8px;}
+    .table th{color:var(--text);}
+    .demo-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+    .demo-btn{border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.05);padding:8px 14px;cursor:pointer;color:var(--muted);transition:all .2s;}
+    .demo-btn.active{color:var(--text);border-color:rgba(194,24,91,.55);background:rgba(194,24,91,.12);}
+    .action-btn{border:1px solid var(--line);background:rgba(255,255,255,.07);border-radius:999px;padding:8px 14px;cursor:pointer;color:var(--text);font-weight:750;transition:all .2s;}
+    .action-btn:hover{border-color:rgba(255,179,217,.6);background:rgba(255,179,217,.1);}
+    .anim-stage{position:relative;min-height:400px;border:1px solid var(--line);border-radius:var(--radius);background:rgba(0,0,0,.2);overflow:hidden;padding:16px;}
+    .ip-input{width:100%;padding:14px 18px;border:1px solid var(--line);border-radius:var(--radius);background:rgba(0,0,0,.35);color:var(--text);font-size:18px;font-family:inherit;outline:none;transition:border-color .25s;}
+    .ip-input:focus{border-color:var(--accent);}
+    .ip-input::placeholder{color:var(--soft);}
+    .check-btn{border:1px solid var(--accent);background:rgba(255,179,217,.15);border-radius:var(--radius);padding:14px 24px;cursor:pointer;color:var(--accent);font-weight:800;font-size:16px;transition:all .25s;}
+    .check-btn:hover{background:rgba(255,179,217,.28);transform:translateY(-1px);}
+    .flag-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0;}
+    .flag-card{border:1px solid var(--line);border-radius:var(--radius);padding:12px;text-align:center;transition:all .4s;background:rgba(0,0,0,.15);}
+    .flag-card.safe{border-color:rgba(194,24,91,.5);background:rgba(194,24,91,.1);}
+    .flag-card.danger{border-color:rgba(192,57,43,.5);background:rgba(192,57,43,.12);animation:pulse-danger .8s ease infinite alternate;}
+    .flag-card .flag-name{font-size:12px;color:var(--soft);font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+    .flag-card .flag-val{font-size:20px;font-weight:800;margin-top:4px;}
+    .flag-card .flag-val.true-val{color:var(--red);}
+    .flag-card .flag-val.false-val{color:var(--accent);}
+    @keyframes pulse-danger{from{box-shadow:0 0 8px rgba(192,57,43,.15);}to{box-shadow:0 0 20px rgba(192,57,43,.35);}}
+    .score-bar{width:100%;height:32px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin:8px 0;position:relative;}
+    .score-fill{height:100%;border-radius:999px;transition:width 1s ease;background:linear-gradient(90deg,var(--accent),var(--gold),var(--red));}
+    .score-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:var(--text);}
+    .verdict{text-align:center;padding:14px;border-radius:var(--radius);font-size:20px;font-weight:800;margin-top:8px;transition:all .4s;}
+    .verdict.bot{background:rgba(192,57,43,.15);border:1px solid rgba(192,57,43,.4);color:var(--red);}
+    .verdict.human{background:rgba(194,24,91,.15);border:1px solid rgba(194,24,91,.4);color:var(--accent);}
+    .ip-examples{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+    .ip-ex{border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:700;transition:all .2s;font-family:'JetBrains Mono',monospace;}
+    .ip-ex:hover{border-color:var(--accent);color:var(--text);background:rgba(255,179,217,.1);}
+    .controls{height:66px;border-top:1px solid var(--line);background:rgba(0,0,0,.25);display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:0 clamp(14px,2.5vw,34px);}
+    .nav-btn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.06);cursor:pointer;transition:all .2s;display:grid;place-items:center;}
+    .nav-btn:hover{border-color:rgba(255,179,217,.5);}
+    .progress{height:5px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden;}
+    .progress span{display:block;height:100%;width:0%;background:linear-gradient(90deg,#c2185b,#ffb3d9,#ff8c66);transition:width .3s;}
+    .counter{color:var(--muted);font-weight:800;min-width:62px;text-align:right;font-size:14px;}
+    .dots{display:flex;gap:5px;justify-content:center;margin-top:8px;}
+    .dot-nav{width:7px;height:7px;border:0;padding:0;border-radius:50%;background:rgba(255,255,255,.22);cursor:pointer;transition:all .2s;}
+    .dot-nav.active{background:var(--accent);transform:scale(1.3);}
+    .info-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:8px;}
+    .info-cell{border:1px solid var(--line);border-radius:var(--radius);padding:10px;background:rgba(0,0,0,.15);}
+    .info-cell strong{font-size:12px;color:var(--soft);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;}
+    .info-cell span{color:var(--text);font-size:14px;font-weight:700;}
+    /* ═══════════════════════════════════════════════════════════
+       ENHANCED SLIDE TRANSITIONS (premium cinematic feel)
+       ═══════════════════════════════════════════════════════════ */
+    .slide{
+      transition: opacity .55s cubic-bezier(.16,1,.3,1), transform .55s cubic-bezier(.16,1,.3,1), filter .4s ease;
+      transform: translateX(48px) scale(.97);
+      filter: blur(6px);
+    }
+    .slide.active{filter:blur(0);transform:none;}
+    .slide.active .slide-head, .slide.active .content > *{
+      animation: slideContentIn .8s cubic-bezier(.16,1,.3,1) both;
+    }
+    .slide.active .content > *:nth-child(2){animation-delay: .1s;}
+    .slide.active .content > *:nth-child(3){animation-delay: .2s;}
+    .slide.active .content > *:nth-child(4){animation-delay: .3s;}
+    @keyframes slideContentIn{
+      from{opacity:0;transform:translateY(20px);}
+      to{opacity:1;transform:none;}
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       DEMO SLIDES — CYBER CONSOLE THEME
+       ═══════════════════════════════════════════════════════════ */
+    .demo-slide{
+      --neon-cyan:#ffb3d9;
+      --neon-magenta:#ff5fa2;
+      --neon-green:#39ff14;
+      --neon-amber:#ffaa00;
+      --neon-red:#ff2d55;
+      --console-bg:#06121a;
+      --console-line:rgba(255,179,217,.18);
+      --console-glow:rgba(255,179,217,.35);
+    }
+    .demo-slide .kicker{
+      color: var(--neon-cyan);
+      text-shadow: 0 0 12px rgba(255,179,217,.5);
+    }
+    .demo-slide h2{
+      background: linear-gradient(90deg, #fff 0%, var(--neon-cyan) 50%, var(--neon-magenta) 75%, #fff 100%);
+      background-size: 200% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: titleShimmer 6s ease-in-out infinite;
+    }
+    @keyframes titleShimmer{
+      0%,100%{background-position: 0% 50%;}
+      50%{background-position: 100% 50%;}
+    }
+    .live-dot{
+      display:inline-block;width:8px;height:8px;border-radius:50%;
+      background:var(--neon-magenta);margin-right:8px;
+      box-shadow:0 0 10px var(--neon-magenta), 0 0 20px var(--neon-magenta);
+      animation: livePulse 1.4s ease-in-out infinite;
+      vertical-align: middle;
+    }
+    @keyframes livePulse{
+      0%,100%{opacity:1;transform:scale(1);}
+      50%{opacity:.4;transform:scale(.85);}
+    }
+
+    /* Cyber stage container */
+    .cyber-stage{
+      position:relative;
+      border-radius:12px;
+      padding: clamp(16px,2vw,24px);
+      background:
+        radial-gradient(ellipse at top right, rgba(255,179,217,.08), transparent 50%),
+        radial-gradient(ellipse at bottom left, rgba(255,95,162,.06), transparent 50%),
+        linear-gradient(180deg, #1a0a14 0%, #0d0610 100%);
+      border:1px solid var(--console-line);
+      box-shadow:
+        inset 0 1px 0 rgba(255,179,217,.1),
+        0 0 60px rgba(255,179,217,.08),
+        0 24px 60px rgba(0,0,0,.5);
+      overflow:hidden;
+      min-height: 540px;
+    }
+    .cyber-grid{
+      position:absolute;inset:0;pointer-events:none;
+      background-image:
+        linear-gradient(rgba(255,179,217,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,179,217,.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+    }
+    .scan-line{
+      position:absolute;left:0;right:0;height:2px;top:0;
+      background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+      box-shadow: 0 0 12px var(--neon-cyan), 0 0 24px var(--neon-cyan);
+      opacity:0;pointer-events:none;
+    }
+    .scan-line.scanning{
+      opacity:1;
+      animation: scanSweep 1.6s linear infinite;
+    }
+    @keyframes scanSweep{
+      0%{top:0;}
+      100%{top:100%;}
+    }
+
+    /* Cyber input */
+    .cyber-input-row{
+      display:flex;gap:12px;position:relative;z-index:1;margin-bottom:12px;
+    }
+    .cyber-input-wrap{
+      flex:1;display:flex;align-items:center;gap:10px;
+      background: rgba(0,0,0,.5);
+      border:1px solid var(--console-line);
+      border-radius: 8px;
+      padding: 0 16px;
+      transition: all .3s;
+    }
+    .cyber-input-wrap:focus-within{
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 0 3px rgba(255,179,217,.15), 0 0 20px rgba(255,179,217,.3);
+    }
+    .cyber-prompt{
+      color: var(--neon-cyan);
+      font-family:'JetBrains Mono',monospace;
+      font-weight:700;font-size:18px;
+      text-shadow: 0 0 8px rgba(255,179,217,.6);
+    }
+    .cyber-input{
+      flex:1;background:transparent;border:0;outline:0;
+      color:#e6f8ff;font-family:'JetBrains Mono',monospace;font-size:18px;
+      padding:14px 0;letter-spacing:.5px;
+    }
+    .cyber-input::placeholder{color:rgba(255,179,217,.35);}
+    .cyber-btn{
+      position:relative;overflow:hidden;
+      border:1px solid var(--neon-cyan);
+      background: linear-gradient(135deg, rgba(255,179,217,.15), rgba(255,179,217,.05));
+      color: var(--neon-cyan);
+      padding: 14px 28px;border-radius:8px;
+      font-family:'JetBrains Mono',monospace;font-weight:800;
+      letter-spacing:.1em;font-size:14px;cursor:pointer;
+      transition: all .25s;
+      text-shadow: 0 0 8px rgba(255,179,217,.5);
+      box-shadow: 0 0 20px rgba(255,179,217,.15);
+    }
+    .cyber-btn:hover{
+      background: linear-gradient(135deg, rgba(255,179,217,.3), rgba(255,179,217,.1));
+      box-shadow: 0 0 30px rgba(255,179,217,.4), inset 0 0 20px rgba(255,179,217,.15);
+      transform: translateY(-1px);
+    }
+    .cyber-btn-glow{
+      position:absolute;inset:0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent);
+      transform:translateX(-100%);
+    }
+    .cyber-btn:hover .cyber-btn-glow{
+      animation: btnSweep .8s ease;
+    }
+    @keyframes btnSweep{
+      to{transform:translateX(100%);}
+    }
+
+    /* Cyber chips (sample IPs) */
+    .cyber-examples{
+      display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+      position:relative;z-index:1;margin-bottom:14px;
+    }
+    .cyber-hint{
+      color: rgba(255,179,217,.45);
+      font-family:'JetBrains Mono',monospace;font-size:11px;
+    }
+    .cyber-chip{
+      border:1px solid rgba(255,179,217,.3);
+      border-radius:6px;padding:5px 10px;
+      background: rgba(255,179,217,.05);
+      color: var(--neon-cyan);
+      font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;
+      cursor:pointer;transition: all .25s;
+    }
+    .cyber-chip:hover{
+      background: rgba(255,179,217,.18);
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 14px rgba(255,179,217,.3);
+      transform: translateY(-1px);
+    }
+
+    /* Flag cards — 3D flip reveal */
+    .cyber-flag-grid{
+      display:grid;grid-template-columns: repeat(6,1fr);gap:10px;
+      position:relative;z-index:1;margin-bottom:14px;
+    }
+    .cyber-flag{
+      perspective: 800px;
+      height: 100px;
+    }
+    .cyber-flag-inner{
+      position:relative;width:100%;height:100%;
+      border-radius: 10px;padding: 12px 8px;
+      background: rgba(0,0,0,.4);
+      border: 1px solid var(--console-line);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+      transition: all .5s cubic-bezier(.34,1.56,.64,1);
+      transform-style: preserve-3d;
+    }
+    .cyber-flag.revealing .cyber-flag-inner{
+      animation: flagFlip .6s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes flagFlip{
+      0%{transform: rotateY(0);}
+      50%{transform: rotateY(90deg) scale(1.1);}
+      100%{transform: rotateY(0);}
+    }
+    .cyber-flag.safe .cyber-flag-inner{
+      background: linear-gradient(135deg, rgba(57,255,20,.08), rgba(0,0,0,.4));
+      border-color: rgba(57,255,20,.4);
+      box-shadow: 0 0 20px rgba(57,255,20,.15), inset 0 0 14px rgba(57,255,20,.05);
+    }
+    .cyber-flag.danger .cyber-flag-inner{
+      background: linear-gradient(135deg, rgba(255,45,85,.12), rgba(0,0,0,.4));
+      border-color: var(--neon-red);
+      box-shadow: 0 0 24px rgba(255,45,85,.4), inset 0 0 14px rgba(255,45,85,.1);
+      animation: dangerPulse 1.2s ease-in-out infinite;
+    }
+    @keyframes dangerPulse{
+      0%,100%{box-shadow: 0 0 18px rgba(255,45,85,.3), inset 0 0 10px rgba(255,45,85,.08);}
+      50%{box-shadow: 0 0 32px rgba(255,45,85,.55), inset 0 0 18px rgba(255,45,85,.15);}
+    }
+    .cyber-flag-icon{
+      font-size:22px;line-height:1;filter: grayscale(.3);transition: all .4s;
+    }
+    .cyber-flag.danger .cyber-flag-icon{
+      filter: grayscale(0) drop-shadow(0 0 6px rgba(255,45,85,.6));
+    }
+    .cyber-flag.safe .cyber-flag-icon{
+      filter: grayscale(0) drop-shadow(0 0 6px rgba(57,255,20,.4));
+    }
+    .cyber-flag .flag-name{
+      font-family:'JetBrains Mono',monospace;font-size:10px;
+      color: rgba(255,255,255,.5);letter-spacing:.05em;text-transform:uppercase;
+    }
+    .cyber-flag .flag-val{
+      font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;
+      color: rgba(255,255,255,.4);
+    }
+    .cyber-flag.safe .flag-val{color: var(--neon-green);text-shadow: 0 0 8px rgba(57,255,20,.5);}
+    .cyber-flag.danger .flag-val{color: var(--neon-red);text-shadow: 0 0 10px rgba(255,45,85,.6);}
+
+    /* Score bar */
+    .cyber-score{
+      position:relative;z-index:1;margin-bottom:14px;
+    }
+    .cyber-score-track{
+      position:relative;height: 38px;
+      background: rgba(0,0,0,.5);
+      border:1px solid var(--console-line);
+      border-radius: 999px;overflow:hidden;
+    }
+    .cyber-score-fill{
+      position:absolute;inset:0;width:0%;
+      background: linear-gradient(90deg, var(--neon-green) 0%, var(--neon-amber) 50%, var(--neon-red) 100%);
+      transition: width 1s cubic-bezier(.16,1,.3,1);
+      box-shadow: 0 0 20px rgba(255,179,217,.3);
+      border-radius: 999px;
+    }
+    .cyber-score-shimmer{
+      position:absolute;inset:0;pointer-events:none;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
+      transform:translateX(-100%);
+    }
+    .cyber-score.scanning .cyber-score-shimmer{
+      animation: scoreShimmer 1.4s linear infinite;
+    }
+    @keyframes scoreShimmer{
+      to{transform: translateX(100%);}
+    }
+    .cyber-score-label{
+      position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+      font-family:'JetBrains Mono',monospace;font-weight:800;
+      font-size: 13px;letter-spacing:.1em;color:#fff;
+      text-shadow: 0 1px 4px rgba(0,0,0,.7);z-index:1;
+    }
+
+    /* Verdict */
+    .cyber-verdict{
+      position:relative;z-index:1;
+      text-align:center;
+      padding: 20px;border-radius: 10px;
+      background: rgba(0,0,0,.4);
+      border:1px solid var(--console-line);
+      font-family:'JetBrains Mono',monospace;
+      font-size: clamp(18px, 2.2vw, 28px);
+      font-weight: 800;letter-spacing: .05em;
+      color: rgba(255,255,255,.4);
+      transition: all .5s cubic-bezier(.34,1.56,.64,1);
+      margin-bottom: 14px;
+    }
+    .cyber-verdict.bot{
+      background: radial-gradient(ellipse at center, rgba(255,45,85,.18), rgba(0,0,0,.5));
+      border-color: var(--neon-red);
+      color: var(--neon-red);
+      text-shadow: 0 0 12px rgba(255,45,85,.6), 0 0 24px rgba(255,45,85,.3);
+      box-shadow: 0 0 40px rgba(255,45,85,.25), inset 0 0 20px rgba(255,45,85,.08);
+      animation: verdictReveal .6s cubic-bezier(.34,1.56,.64,1), verdictBotPulse 1.6s ease-in-out infinite .6s;
+    }
+    .cyber-verdict.human{
+      background: radial-gradient(ellipse at center, rgba(57,255,20,.15), rgba(0,0,0,.5));
+      border-color: var(--neon-green);
+      color: var(--neon-green);
+      text-shadow: 0 0 12px rgba(57,255,20,.5), 0 0 24px rgba(57,255,20,.3);
+      box-shadow: 0 0 40px rgba(57,255,20,.2), inset 0 0 20px rgba(57,255,20,.08);
+      animation: verdictReveal .6s cubic-bezier(.34,1.56,.64,1);
+    }
+    .cyber-verdict.scanning{
+      color: var(--neon-cyan);
+      border-color: var(--neon-cyan);
+      text-shadow: 0 0 8px rgba(255,179,217,.5);
+      animation: verdictScanning 1.4s ease-in-out infinite;
+    }
+    @keyframes verdictReveal{
+      0%{transform: scale(.85);opacity:0;}
+      60%{transform: scale(1.05);opacity:1;}
+      100%{transform: scale(1);opacity:1;}
+    }
+    @keyframes verdictBotPulse{
+      0%,100%{box-shadow: 0 0 30px rgba(255,45,85,.2), inset 0 0 15px rgba(255,45,85,.06);}
+      50%{box-shadow: 0 0 55px rgba(255,45,85,.4), inset 0 0 22px rgba(255,45,85,.12);}
+    }
+    @keyframes verdictScanning{
+      0%,100%{opacity:.7;}
+      50%{opacity:1;}
+    }
+
+    /* Info row */
+    .cyber-info{
+      display:grid;grid-template-columns: repeat(3,1fr);gap:10px;
+      position:relative;z-index:1;
+    }
+    .cyber-info-cell{
+      border:1px solid var(--console-line);
+      background: rgba(0,0,0,.4);
+      border-radius: 8px;padding: 12px 14px;
+      transition: all .3s;
+    }
+    .cyber-info-cell:hover{
+      border-color: rgba(255,179,217,.4);
+      background: rgba(255,179,217,.04);
+    }
+    .cyber-info-label{
+      font-family:'JetBrains Mono',monospace;font-size:10px;
+      color: var(--neon-cyan);letter-spacing:.1em;
+      margin-bottom: 4px;text-transform:uppercase;
+      opacity: .8;
+    }
+    .cyber-info-val{
+      color:#e6f8ff;font-size:14px;font-weight:700;
+      font-family:'JetBrains Mono',monospace;
+      word-break: break-word;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       DEMO SLIDE 15 — CODE VIEWER ENHANCEMENTS
+       ═══════════════════════════════════════════════════════════ */
+    .demo-slide .demo-tabs{
+      gap: 6px;border-bottom:1px solid var(--console-line);
+      padding-bottom: 10px;margin-bottom: 12px;
+    }
+    .demo-slide .demo-btn{
+      font-family:'JetBrains Mono',monospace;
+      font-size: 12px;font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 6px 6px 0 0;
+      border: 1px solid transparent;
+      border-bottom: 0;
+      background: transparent;
+      color: rgba(255,255,255,.4);
+      letter-spacing: .02em;
+      transition: all .2s;
+      position: relative;
+    }
+    .demo-slide .demo-btn::before{
+      content:"📄";margin-right:6px;font-size:11px;opacity:.6;
+    }
+    .demo-slide .demo-btn:hover{
+      color: var(--neon-cyan);background: rgba(255,179,217,.05);
+    }
+    .demo-slide .demo-btn.active{
+      color: var(--neon-cyan);
+      background: rgba(255,179,217,.1);
+      border-color: rgba(255,179,217,.3);
+      box-shadow: 0 -2px 12px rgba(255,179,217,.15);
+      text-shadow: 0 0 8px rgba(255,179,217,.4);
+    }
+    .demo-slide .demo-btn.active::before{opacity:1;}
+    .demo-slide #codeDisplay{
+      background: rgba(0,0,0,.5);
+      border: 1px solid var(--console-line);
+      box-shadow: inset 0 0 20px rgba(255,179,217,.04);
+      animation: codeSlideIn .4s ease-out;
+    }
+    @keyframes codeSlideIn{
+      from{opacity:0;transform:translateY(8px);}
+      to{opacity:1;transform:none;}
+    }
+
+    /* Mobile: cyber adjustments */
+    @media(max-width:900px){
+      .cyber-flag-grid{grid-template-columns: repeat(3,1fr);}
+      .cyber-info{grid-template-columns:1fr;}
+      .cyber-input-row{flex-direction:column;}
+      .cyber-stage{min-height:auto;}
+    }
+
+    @media(max-width:900px){
+      .slide{filter:none;transform:none;}
+    }
+
+    @media(max-width:900px){
+      body{overflow:auto;}html,body,.deck{min-height:100%;height:auto;}
+      .slides{min-height:calc(100vh - 66px);}.slide{position:relative;display:none;min-height:calc(100vh - 66px);}
+      .slide.active{display:grid;}.two,.three,.split-wide,.pipeline,.flag-grid{grid-template-columns:1fr;}
+      .controls{position:sticky;bottom:0;}
+    }
+  </style>
+</head>
+<body>
+<div class="deck">
+<main class="slides" id="slides">
+
+  <!-- SLIDE 1 -->
+  <section class="slide active">
+    <header class="slide-head">
+      <div>
+        <p class="kicker">DSpace 7 SOLR Statistics — Bot Detection & Filtering</p>
+        <h1>IP Quality Score Bot Detection System</h1>
+        <div class="hero-meta">
+          <span class="pill">Naomie Dalhia Johanne Bambara</span>
+          <span class="pill">Saint Cloud State University</span>
+          <span class="pill">Fall 2025 – Spring 2026</span>
+        </div>
+      </div>
+      <div class="slide-no">01 / 30</div>
+    </header>
+    <div class="content split-wide">
+      <div class="panel accent-green">
+        <h3>Project Goal</h3>
+        <p>Build a Python web application that retrieves SOLR statistics from DSpace 7, uses <strong>IPQS APIs</strong> to detect bots via 6 security indicators, filters out bot traffic, and stores clean statistics in <strong>MongoDB</strong>.</p>
+      </div>
+      <div class="grid three">
+        <div class="panel"><span class="big-number">6</span><span class="label">security flags per IP address</span></div>
+        <div class="panel"><span class="big-number">0–120</span><span class="label">risk score range (20pts/flag)</span></div>
+        <div class="panel"><span class="big-number">3</span><span class="label">MongoDB collections designed</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 2 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Overview</p><h2>Presentation Outline</h2></div>
+      <div class="slide-no">02 / 30</div>
+    </header>
+    <div class="content three">
+      <div class="panel accent-green">
+        <h3>Foundation</h3>
+        <div style="display:grid;gap:14px;margin-top:12px;">
+          <p style="white-space:nowrap;"><span style="color:var(--accent);font-weight:800;margin-right:8px;">●</span><strong>1.</strong> Project Context & Requirements</p>
+          <p style="white-space:nowrap;"><span style="color:var(--accent);font-weight:800;margin-right:8px;">●</span><strong>2.</strong> 6 Security Indicators (IPQS)</p>
+          <p style="white-space:nowrap;"><span style="color:var(--accent);font-weight:800;margin-right:8px;">●</span><strong>3.</strong> Risk Score Calculation</p>
+          <p style="white-space:nowrap;"><span style="color:var(--accent);font-weight:800;margin-right:8px;">●</span><strong>4.</strong> API Architecture</p>
+        </div>
+      </div>
+      <div class="panel accent-moss">
+        <h3>Implementation</h3>
+        <div style="display:grid;gap:14px;margin-top:12px;">
+          <p style="white-space:nowrap;"><span style="color:var(--accent);font-weight:800;margin-right:8px;">●</span><strong>5.</strong> System Architecture & Pipeline</p>
+          <p style="white-space:nowrap;"><span style="color:var(--accent);font-weight:800;margin-right:8px;">●</span><strong>6.</strong> MongoDB Design (3 Collections)</p>
+          <p style="white-space:nowrap;"><span style="color:var(--accent);font-weight:800;margin-right:8px;">●</span><strong>7.</strong> Source Code & Live Demos</p>
+          <p style="white-space:nowrap;"><span style="color:var(--accent);font-weight:800;margin-right:8px;">●</span><strong>8.</strong> How to Run the Code</p>
+        </div>
+      </div>
+      <div class="panel accent-orange">
+        <h3>Results</h3>
+        <div style="display:grid;gap:14px;margin-top:12px;">
+          <p style="white-space:nowrap;"><span style="color:var(--accent);font-weight:800;margin-right:8px;">●</span><strong>9.</strong> Output & Results Table</p>
+          <p style="white-space:nowrap;"><span style="color:var(--accent);font-weight:800;margin-right:8px;">●</span><strong>10.</strong> Meeting Timeline</p>
+          <p style="white-space:nowrap;"><span style="color:var(--accent);font-weight:800;margin-right:8px;">●</span><strong>11.</strong> References</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 3 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Project Context</p><h2>DSpace 7 & SOLR Statistics</h2></div>
+      <div class="slide-no">03 / 30</div>
+    </header>
+    <div class="content two">
+      <div class="panel accent-green">
+        <h3>What is DSpace?</h3>
+        <ul class="list">
+          <li><strong>DSpace 7</strong> is an open-source repository system used by UNESCAP to host research publications and documents.</li>
+          <li><strong>SOLR</strong> (Apache Solr) powers the search and statistics engine — it logs every page view and download with IP, user agent, timestamp, and document IDs.</li>
+          <li>These statistics are critical for measuring the <strong>impact and reach</strong> of publications.</li>
+        </ul>
+      </div>
+      <div class="panel accent-orange">
+        <h3>The Bot Problem</h3>
+        <ul class="list">
+          <li>Bots (Googlebot, Bingbot, scrapers) generate <strong>fake page views and downloads</strong> that inflate statistics.</li>
+          <li>The editing model changes have worsened bot contamination of SOLR data.</li>
+          <li>We need to <strong>filter out bot traffic</strong> and keep only legitimate human interactions.</li>
+          <li>Solution: Use <strong>IP Quality Score APIs</strong> to classify each IP as bot or human.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 4 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Project Requirements</p><h2>Tasks & Meeting Timeline</h2></div>
+      <div class="slide-no">04 / 30</div>
+    </header>
+    <div class="content two">
+      <div class="panel accent-green">
+        <ul class="list">
+          <li>Create a Python script that calls the IPQS API with a single IP and determines if it is a bot or not.</li>
+          <li>No IP validation needed — assume correct IP is given.</li>
+          <li>Understand the 6 security flags and how they determine bot status.</li>
+          <li>Batch-process all IPs from sample_statistics.json automatically.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <ul class="list">
+          <li>Install MongoDB, create database <strong>solr_statistics_dbS</strong>.</li>
+          <li>Design 3 collections: <strong>raw_data</strong>, <strong>bot_mapping</strong>, <strong>filtered_data</strong>.</li>
+          <li>Insert 1000-record dataset, run IPQS lookups on unique IPs only (5000 free limit).</li>
+          <li>Filter non-bot data using bot_mapping — no re-calling API.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 5 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Security Indicators</p><h2>The 6 IPQS Flags</h2></div>
+      <div class="slide-no">05 / 30</div>
+    </header>
+    <div class="content three">
+      <div class="panel"><span class="big-number" style="font-size:36px;">🔒</span><h3>is_vpn</h3><p>IP belongs to a known VPN provider. Medium risk alone, high when combined with other flags.</p></div>
+      <div class="panel"><span class="big-number" style="font-size:36px;">🌐</span><h3>is_proxy</h3><p>IP operates as an open/anonymous proxy (HTTP/SOCKS5). 90%+ of malicious bots use proxies. Very high risk.</p></div>
+      <div class="panel"><span class="big-number" style="font-size:36px;">🧅</span><h3>is_tor</h3><p>IP is a Tor exit node. Nearly all Tor traffic in analytics should be filtered. Very high risk.</p></div>
+    </div>
+    <div class="grid three" style="margin-top:12px;">
+      <div class="panel"><span class="big-number" style="font-size:36px;">🖥️</span><h3>is_hosting</h3><p>IP belongs to cloud/VPS/datacenter. Mobile User-Agent from hosting IP = near-certain bot.</p></div>
+      <div class="panel"><span class="big-number" style="font-size:36px;">⚠️</span><h3>is_abuse</h3><p>IP reported for abuse in last 30 days (spam, scraping, brute-force). Direct evidence of malicious automation.</p></div>
+      <div class="panel"><span class="big-number" style="font-size:36px;">📨</span><h3>is_relay</h3><p>IP belongs to email relay, CDN edge, or traffic forwarding service. Context-dependent risk.</p></div>
+    </div>
+  </section>
+
+  <!-- SLIDE 6 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Flag Details</p><h2>VPN & Proxy Detection</h2></div>
+      <div class="slide-no">06 / 30</div>
+    </header>
+    <div class="content two">
+      <div class="panel accent-moss">
+        <h3>is_vpn — Virtual Private Network</h3>
+        <ul class="list">
+          <li><strong>Detection:</strong> ASN/IP range ownership analysis, provider database matching, traffic pattern profiling</li>
+          <li><strong>Legitimate:</strong> Privacy protection, remote work, bypassing geo-restrictions</li>
+          <li><strong>Malicious:</strong> Hiding botnet origin, evading IP bans, simulating users from multiple countries</li>
+          <li><strong>Risk:</strong> Medium alone → High in context (with non-residential connection_type + high fraud_score)</li>
+        </ul>
+      </div>
+      <div class="panel accent-red">
+        <h3>is_proxy — Anonymous Proxy Server</h3>
+        <ul class="list">
+          <li><strong>Detection:</strong> Active port scanning (80, 8080, 3128), known proxy databases, historical forwarding behavior</li>
+          <li><strong>Types:</strong> Public proxies, elite proxies, datacenter proxies</li>
+          <li><strong>Malicious:</strong> Botnets for scraping, CAPTCHA solving farms, credential stuffing</li>
+          <li><strong>Risk:</strong> HIGH — 90%+ of malicious bots use proxies. Triggers immediate suspicion even with low fraud_score.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 7 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Flag Details</p><h2>Tor & Hosting Detection</h2></div>
+      <div class="slide-no">07 / 30</div>
+    </header>
+    <div class="content two">
+      <div class="panel accent-red">
+        <h3>is_tor — Tor Exit Node</h3>
+        <ul class="list">
+          <li><strong>Detection:</strong> Real-time sync with Tor Project's official exit node list</li>
+          <li><strong>Legitimate:</strong> Anonymity for activists, journalists, whistleblowers</li>
+          <li><strong>Malicious:</strong> Automated abuse, dark pool scraping, DDoS coordination</li>
+          <li><strong>Risk:</strong> VERY HIGH — block by default in analytics. is_tor=true → filter immediately.</li>
+        </ul>
+      </div>
+      <div class="panel accent-orange">
+        <h3>is_hosting — Datacenter/Cloud IP</h3>
+        <ul class="list">
+          <li><strong>Detection:</strong> ASN classification, BGP routing data, reverse DNS patterns (e.g. ec2-...amazonaws.com)</li>
+          <li><strong>Legitimate:</strong> Web servers, APIs, CDNs, enterprise tools</li>
+          <li><strong>Malicious:</strong> Bot farms on cheap VPS, scraping clusters, fraud rings using cloud IPs</li>
+          <li><strong>Key insight:</strong> A mobile User-Agent from a hosting IP = near-certain bot</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 8 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Flag Details</p><h2>Abuse & Relay Detection</h2></div>
+      <div class="slide-no">08 / 30</div>
+    </header>
+    <div class="content two">
+      <div class="panel accent-red">
+        <h3>is_abuse — Recent Abuse Reports</h3>
+        <ul class="list">
+          <li><strong>Detection:</strong> IPQS Fraud Network (community + partner reports), honeypot traps, partner API feedback loop</li>
+          <li><strong>Severity:</strong> Tied to abuse_velocity: low, medium, high</li>
+          <li><strong>Risk:</strong> HIGH — direct evidence of malicious automation</li>
+          <li><strong>Example:</strong> IP with 47 scraping reports in 24h → is_abuse=true, abuse_velocity=high → Active bot</li>
+        </ul>
+      </div>
+      <div class="panel accent-moss">
+        <h3>is_relay — Email/Traffic Relay</h3>
+        <ul class="list">
+          <li><strong>Detection:</strong> Known relay ASN/IP ranges, header analysis, service fingerprinting</li>
+          <li><strong>Legitimate:</strong> Email delivery, CDN caching, Apple iCloud Private Relay</li>
+          <li><strong>Malicious:</strong> Abusing free tiers for bot traffic, hiding origin, spam relay chains</li>
+          <li><strong>Risk:</strong> Context-dependent. Apple Private Relay (is_relay=true) increasingly used by real iOS users.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 9 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Risk Scoring</p><h2>How the Score Is Calculated</h2></div>
+      <div class="slide-no">09 / 30</div>
+    </header>
+    <div class="content two">
+      <div class="panel accent-green">
+        <h3>20 Points Per Flag</h3>
+        <div class="code-block" style="font-size:15px;">flags = [is_vpn, is_proxy, is_tor,
+         is_hosting, is_abuse, is_relay]
+
+risk_score = sum(20 for f in flags if f)
+# Range: 0 (clean) to 120 (max risk)
+
+is_bot = any(flags)
+# True if ANY flag is True
+
+classification = "BOT DETECTED"
+    if is_bot else "NOT A BOT"</div>
+      </div>
+      <div class="panel">
+        <h3>Why 20 Points Per Flag?</h3>
+        <ul class="list">
+          <li><strong>Simplicity</strong> — easy to understand and audit</li>
+          <li><strong>Equal weighting</strong> — each anonymity/abuse signal is considered equally dangerous</li>
+          <li><strong>Clear scale</strong> — 0 = no risk, 120 = maximum risk</li>
+          <li><strong>Any single flag</strong> triggers bot classification</li>
+        </ul>
+        <h3 style="margin-top:14px;">Example</h3>
+        <p>IP 66.249.80.196: is_hosting=True + is_relay=True → score = 40/120 → <strong>BOT DETECTED</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 10 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">API Architecture</p><h2>Dual-API Strategy</h2></div>
+      <div class="slide-no">10 / 30</div>
+    </header>
+    <div class="content two">
+      <div class="panel accent-green">
+        <h3>Primary: AbstractAPI IP-Intelligence</h3>
+        <ul class="list">
+          <li>Returns the 6 security flags (VPN, proxy, Tor, hosting, abuse, relay)</li>
+          <li>Company, ASN, geolocation, timezone data</li>
+          <li>API key authentication, 10-second timeout</li>
+          <li>Rate-limited: 1.1s delay between requests</li>
+        </ul>
+      </div>
+      <div class="panel accent-moss">
+        <h3>Fallback: ip-api.com</h3>
+        <ul class="list">
+          <li>Lightweight geo/ISP data: country, city, ISP, org</li>
+          <li>Free tier, no API key required</li>
+          <li>Used to fill missing fields from primary source</li>
+          <li>Fields requested: status, country, regionName, city, isp, org, proxy, hosting</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 11 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Architecture</p><h2>System Pipeline</h2></div>
+      <div class="slide-no">11 / 30</div>
+    </header>
+    <div class="content">
+      <div class="pipeline">
+        <div class="step"><strong>1. Ingest</strong><span>Load SOLR JSON data (pageviews & downloads) from DSpace 7</span></div>
+        <div class="step"><strong>2. Extract</strong><span>Deduplicate IPs from raw records (set-based extraction)</span></div>
+        <div class="step"><strong>3. Classify</strong><span>Query IPQS API for each unique IP → 6 flags → risk score</span></div>
+        <div class="step"><strong>4. Store</strong><span>Save bot_mapping to MongoDB. Insert raw_data. Filter clean data.</span></div>
+        <div class="step"><strong>5. Output</strong><span>filtered_data collection contains only human traffic.</span></div>
+      </div>
+      <div class="panel accent-green" style="margin-top:14px;">
+        <h3>Key Optimization</h3>
+        <p>With 5,000 free API lookups, we <strong>extract unique IPs first</strong> (not parse raw data). 1,000 records may have only ~200 unique IPs. The bot_mapping collection caches results so we <strong>never re-query</strong> the same IP twice.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 12 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">MongoDB Design</p><h2>Database: solr_statistics_dbS</h2></div>
+      <div class="slide-no">12 / 30</div>
+    </header>
+    <div class="content three">
+      <div class="panel accent-green">
+        <h3>raw_data</h3>
+        <p>All original SOLR documents — both bot and human traffic. Inserted via <strong>insert_raw_data.py</strong>.</p>
+        <p style="margin-top:8px;">Fields: ip, dns, userAgent, isBot, type, owningItem, time, statistics_type, uid</p>
+      </div>
+      <div class="panel accent-moss">
+        <h3>bot_mapping</h3>
+        <p>Each unique IP → is_bot boolean + full API response. Created by <strong>bot_mapping.py</strong>.</p>
+        <p style="margin-top:8px;">Fields: ip, is_bot, response (full IPQS data). IPs deduplicated via raw_data.distinct("ip") — no re-queries on existing IPs.</p>
+      </div>
+      <div class="panel accent-orange">
+        <h3>filtered_data</h3>
+        <p>Only records where the IP is NOT a bot (determined by bot_mapping, no re-calling API). Created by <strong>filtered_data.py</strong>.</p>
+        <p style="margin-top:8px;">Contains clean human traffic only — ready for accurate statistics reporting.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 13 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Data Flow</p><h2>MongoDB Pipeline Visualization</h2></div>
+      <div class="slide-no">13 / 30</div>
+    </header>
+    <div class="content">
+      <div class="code-block" style="font-size:14px;text-align:center;line-height:2;">
+SOLR JSON (1000 records)
+        │
+        ▼
+┌─────────────────────┐
+│  insert_raw_data.py │──→  raw_data collection (all records)
+└─────────────────────┘
+        │
+   raw_data.distinct("ip") → unique IPs
+        │
+        ▼
+┌─────────────────────┐
+│   bot_mapping.py    │──→  bot_mapping (IP → is_bot)
+│  (IPQS API lookup)  │     ⚡ 1.1s rate limit, 5000 cap
+│                     │──→  clean_data (non-bot raw docs)
+└─────────────────────┘
+        │
+   filter isBot=False
+        │
+        ▼
+┌─────────────────────┐
+│  filtered_data.py   │──→  filtered_data (humans only)
+└─────────────────────┘
+        │
+        ▼
+   Clean statistics ready for reporting</div>
+    </div>
+  </section>
+
+  <!-- SLIDE 14 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Sample Data</p><h2>SOLR Statistics JSON Structure</h2></div>
+      <div class="slide-no">14 / 30</div>
+    </header>
+    <div class="content two">
+      <div class="panel">
+        <h3>One SOLR Document</h3>
+        <div class="code-block" style="font-size:13px;">{
+  "ip": "66.249.80.196",
+  "dns": "google-proxy-66-249-80-196",
+  "userAgent": "Mozilla/5.0 (compatible;
+    Google AppsViewer; ...)",
+  "isBot": true,
+  "type": 0,
+  "owningItem": ["8f44d336-f51f-..."],
+  "owningColl": ["e5a652c3-655e-..."],
+  "time": "2025-02-04T15:38:38.514Z",
+  "bundleName": ["ORIGINAL"],
+  "statistics_type": "view",
+  "uid": "5c40ac51-437b-..."
+}</div>
+      </div>
+      <div class="panel accent-green">
+        <h3>Key Fields</h3>
+        <ul class="list">
+          <li><strong>ip:</strong> The visitor's IP address — the target for bot detection</li>
+          <li><strong>dns:</strong> Reverse DNS lookup — often reveals bot identity (e.g. "google-proxy-...")</li>
+          <li><strong>userAgent:</strong> Browser/bot identifier — Googlebot, Bingbot, etc.</li>
+          <li><strong>isBot:</strong> SOLR's own guess (unreliable — we verify with IPQS)</li>
+          <li><strong>statistics_type:</strong> "view" or "download" — the event type</li>
+          <li><strong>owningItem:</strong> UUID of the publication being accessed</li>
+          <li><strong>time:</strong> ISO 8601 timestamp of the event</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 15-19: CODE VIEWER -->
+  <section class="slide demo-slide">
+    <header class="slide-head">
+      <div><p class="kicker">Source Code</p><h2>All Python Modules</h2></div>
+      <div class="slide-no">15 / 30</div>
+    </header>
+    <div class="content split-wide">
+      <div class="panel" style="overflow:auto;">
+        <div class="demo-tabs" id="codeTabs">
+          <button class="demo-btn active" data-code="Main">Main.py</button>
+          <button class="demo-btn" data-code="Main2">Main2.py</button>
+          <button class="demo-btn" data-code="bot_mapping">bot_mapping.py</button>
+          <button class="demo-btn" data-code="insert_raw_data">insert_raw_data.py</button>
+          <button class="demo-btn" data-code="filtered_data">filtered_data.py</button>
+          <button class="demo-btn" data-code="Filtering">Filtering.py</button>
+        </div>
+        <div class="code-block" id="codeDisplay" style="max-height:380px;overflow:auto;"></div>
+      </div>
+      <div class="panel">
+        <h3>Module Summary</h3>
+        <ul class="list">
+          <li><strong>Main.py</strong> — Single-IP checker. User inputs one IP, gets full analysis report with 6 flags and risk score.</li>
+          <li><strong>Main2.py</strong> — Batch processor. Reads embedded SOLR JSON, auto-processes all unique IPs, prints per-IP + summary table.</li>
+          <li><strong>bot_mapping.py</strong> — MongoDB integration. Extracts unique IPs from data_may_01_limit_1000.json, queries IPQS, stores results in bot_mapping collection.</li>
+          <li><strong>insert_raw_data.py</strong> — Loads JSON file, inserts all docs into raw_data collection.</li>
+          <li><strong>filtered_data.py</strong> — Filters clean_data for isBot=False, inserts into filtered_data collection.</li>
+          <li><strong>Filtering.py</strong> — Advanced pipeline: filters bots, fetches ESCAP repository metadata, aggregates monthly stats.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 16: INTERACTIVE IP CHECKER (REDESIGNED) -->
+  <section class="slide demo-slide demo-slide-cyber">
+    <header class="slide-head">
+      <div>
+        <p class="kicker"><span class="live-dot"></span>Live Demo · Real-Time IP Intelligence</p>
+        <h2>IP Bot Detection Console</h2>
+      </div>
+      <div class="slide-no">16 / 30</div>
+    </header>
+    <div class="content">
+      <div class="cyber-stage">
+        <div class="cyber-grid"></div>
+        <div class="scan-line" id="scanLine"></div>
+
+        <div class="cyber-input-row">
+          <div class="cyber-input-wrap">
+            <span class="cyber-prompt">&gt;_</span>
+            <input type="text" id="ipInput" class="cyber-input" placeholder="enter target IP address..." autocomplete="off" spellcheck="false"/>
+          </div>
+          <button class="cyber-btn" onclick="checkIP()">
+            <span class="cyber-btn-glow"></span>
+            <span>SCAN IP</span>
+          </button>
+        </div>
+
+        <div class="cyber-examples">
+          <span class="cyber-hint">// quick targets:</span>
+          <span class="cyber-chip" onclick="fillIP('66.249.80.196')">66.249.80.196</span>
+          <span class="cyber-chip" onclick="fillIP('102.140.205.7')">102.140.205.7</span>
+          <span class="cyber-chip" onclick="fillIP('52.167.144.219')">52.167.144.219</span>
+          <span class="cyber-chip" onclick="fillIP('69.160.14.238')">69.160.14.238</span>
+          <span class="cyber-chip" onclick="fillIP('1.1.1.1')">1.1.1.1</span>
+          <span class="cyber-chip" onclick="fillIP('8.8.8.8')">8.8.8.8</span>
+          <span class="cyber-hint">// or type any IP for live ipwho.is lookup</span>
+        </div>
+
+        <div class="cyber-flag-grid" id="flagGrid">
+          <div class="cyber-flag" id="fc-vpn"><div class="cyber-flag-inner"><div class="cyber-flag-icon">🔒</div><div class="flag-name">is_vpn</div><div class="flag-val">—</div></div></div>
+          <div class="cyber-flag" id="fc-proxy"><div class="cyber-flag-inner"><div class="cyber-flag-icon">🌐</div><div class="flag-name">is_proxy</div><div class="flag-val">—</div></div></div>
+          <div class="cyber-flag" id="fc-tor"><div class="cyber-flag-inner"><div class="cyber-flag-icon">🧅</div><div class="flag-name">is_tor</div><div class="flag-val">—</div></div></div>
+          <div class="cyber-flag" id="fc-hosting"><div class="cyber-flag-inner"><div class="cyber-flag-icon">🖥️</div><div class="flag-name">is_hosting</div><div class="flag-val">—</div></div></div>
+          <div class="cyber-flag" id="fc-abuse"><div class="cyber-flag-inner"><div class="cyber-flag-icon">⚠️</div><div class="flag-name">is_abuse</div><div class="flag-val">—</div></div></div>
+          <div class="cyber-flag" id="fc-relay"><div class="cyber-flag-inner"><div class="cyber-flag-icon">📡</div><div class="flag-name">is_relay</div><div class="flag-val">—</div></div></div>
+        </div>
+
+        <div class="cyber-score">
+          <div class="cyber-score-track">
+            <div class="cyber-score-fill" id="scoreFill"></div>
+            <div class="cyber-score-shimmer"></div>
+          </div>
+          <div class="cyber-score-label" id="scoreLabel">RISK SCORE · STANDBY</div>
+        </div>
+
+        <div class="cyber-verdict" id="verdict">awaiting target...</div>
+
+        <div class="cyber-info">
+          <div class="cyber-info-cell"><div class="cyber-info-label">📍 LOCATION</div><div class="cyber-info-val" id="infoGeo">—</div></div>
+          <div class="cyber-info-cell"><div class="cyber-info-label">🏢 ISP / ORG</div><div class="cyber-info-val" id="infoISP">—</div></div>
+          <div class="cyber-info-cell"><div class="cyber-info-label">🔧 TYPE / DOMAIN</div><div class="cyber-info-val" id="infoType">—</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 17 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Output</p><h2>Sample Results — Per IP Report</h2></div>
+      <div class="slide-no">17 / 30</div>
+    </header>
+    <div class="content two">
+      <div class="panel accent-green">
+        <h3>Human — 102.140.205.7</h3>
+        <div class="code-block" style="font-size:12px;">UID       : USR-FB7608
+IP        : 102.140.205.7
+Country   : Kenya / Nairobi
+ISP       : Wananchi Group (K) LTD
+Type      : isp
+──────────────────────────
+Security Flags:
+  is_vpn    : False
+  is_proxy  : False
+  is_tor    : False
+  is_hosting: False
+  is_abuse  : False
+  is_relay  : False
+──────────────────────────
+Risk Score: 0/120
+Bot?      : False → NOT A BOT</div>
+      </div>
+      <div class="panel accent-red">
+        <h3>Bot — 52.167.144.219</h3>
+        <div class="code-block" style="font-size:12px;">UID       : USR-AEDAD1
+IP        : 52.167.144.219
+Country   : United States / Boydton
+ISP       : Microsoft Corporation
+Type      : hosting
+──────────────────────────
+Security Flags:
+  is_vpn    : False
+  is_proxy  : False
+  is_tor    : False
+  is_hosting: True   ← FLAGGED
+  is_abuse  : False
+  is_relay  : True   ← FLAGGED
+──────────────────────────
+Risk Score: 40/120
+Bot?      : True → BOT DETECTED</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 18 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Results</p><h2>Final Summary Table</h2></div>
+      <div class="slide-no">18 / 30</div>
+    </header>
+    <div class="content">
+      <div class="panel" style="overflow:auto;">
+        <table class="table">
+          <thead><tr><th>IP Address</th><th>BOT?</th><th>Score</th><th>Flags</th><th>ISP</th></tr></thead>
+          <tbody>
+            <tr><td style="font-family:'JetBrains Mono',monospace;">102.140.205.7</td><td style="color:var(--accent);font-weight:800;">NO</td><td>0</td><td>—</td><td>Wananchi Group</td></tr>
+            <tr><td style="font-family:'JetBrains Mono',monospace;">2a06:98c0:3600::103</td><td style="color:var(--red);font-weight:800;">YES</td><td>40</td><td>hosting, relay</td><td>Cloudflare</td></tr>
+            <tr><td style="font-family:'JetBrains Mono',monospace;">52.167.144.219</td><td style="color:var(--red);font-weight:800;">YES</td><td>40</td><td>hosting, relay</td><td>Microsoft</td></tr>
+            <tr><td style="font-family:'JetBrains Mono',monospace;">66.249.80.196</td><td style="color:var(--red);font-weight:800;">YES</td><td>40</td><td>hosting, relay</td><td>Google LLC</td></tr>
+            <tr><td style="font-family:'JetBrains Mono',monospace;">66.249.80.201</td><td style="color:var(--red);font-weight:800;">YES</td><td>40</td><td>hosting, relay</td><td>Google LLC</td></tr>
+            <tr><td style="font-family:'JetBrains Mono',monospace;">69.160.14.238</td><td style="color:var(--accent);font-weight:800;">NO</td><td>0</td><td>—</td><td>Nine Communications</td></tr>
+            <tr><td style="font-family:'JetBrains Mono',monospace;">74.125.214.99</td><td style="color:var(--red);font-weight:800;">YES</td><td>40</td><td>hosting, relay</td><td>Google LLC</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="grid three" style="margin-top:14px;">
+        <div class="panel"><span class="big-number">5/7</span><span class="label">IPs classified as BOT (71.4%)</span></div>
+        <div class="panel"><span class="big-number">2/7</span><span class="label">IPs classified as HUMAN (28.6%)</span></div>
+        <div class="panel"><span class="big-number">40</span><span class="label">avg risk score for bots detected</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 19 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">IPQS API</p><h2>Field Mapping to 6 Indicators</h2></div>
+      <div class="slide-no">19 / 30</div>
+    </header>
+    <div class="content two">
+      <div class="panel">
+        <table class="table">
+          <thead><tr><th>Security Indicator</th><th>IPQS API Field</th><th>Value → true</th></tr></thead>
+          <tbody>
+            <tr><td>is_vpn</td><td>vpn</td><td>true</td></tr>
+            <tr><td>is_proxy</td><td>proxy</td><td>true</td></tr>
+            <tr><td>is_tor</td><td>tor</td><td>true</td></tr>
+            <tr><td>is_hosting</td><td>connection_type</td><td>"Hosting", "Business", "Cloud"</td></tr>
+            <tr><td>is_abuse</td><td>recent_abuse</td><td>true</td></tr>
+            <tr><td>is_relay</td><td>relay (or inferred)</td><td>true or detected</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel accent-green">
+        <h3>API Response → Classification</h3>
+        <div class="code-block" style="font-size:13px;">security = api_response.get("security", {})
+
+is_vpn = security.get("is_vpn", False)
+is_proxy = security.get("is_proxy", False)
+is_tor = security.get("is_tor", False)
+is_hosting = security.get("is_hosting", False)
+is_abuse = security.get("is_abuse", False)
+is_relay = security.get("is_relay", False)
+
+flags = [is_vpn, is_proxy, is_tor,
+         is_hosting, is_abuse, is_relay]
+risk_score = sum(20 for f in flags if f)
+is_bot = any(flags)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 20 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">MongoDB Scripts</p><h2>insert_raw_data.py — Loading Data</h2></div>
+      <div class="slide-no">20 / 30</div>
+    </header>
+    <div class="content two">
+      <div class="panel">
+        <div class="code-block" style="font-size:13px;">from pymongo import MongoClient
+import json
+
+client = MongoClient("mongodb://localhost:27017/")
+db = client["solr_statistics_dbS"]
+raw_data_col = db["raw_data"]
+
+with open("data_may_01_limit_1000.json") as f:
+    data = json.load(f)
+
+docs = data["response"]["docs"]
+raw_data_col.insert_many(docs)
+print(f"Inserted {len(docs)} documents")</div>
+      </div>
+      <div class="panel accent-green">
+        <h3>What This Does</h3>
+        <ul class="list">
+          <li>Connects to local MongoDB instance on default port 27017</li>
+          <li>Creates/connects to database <strong>solr_statistics_dbS</strong></li>
+          <li>Loads the full SOLR JSON export (1000 records)</li>
+          <li>Extracts the docs array from response.docs</li>
+          <li>Uses <strong>insert_many()</strong> for bulk insertion — much faster than one-by-one</li>
+          <li>Prints confirmation with document count</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 21 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">MongoDB Scripts</p><h2>bot_mapping.py — IP Classification</h2></div>
+      <div class="slide-no">21 / 30</div>
+    </header>
+    <div class="content two">
+      <div class="panel accent-moss">
+        <h3>Key Logic (Updated)</h3>
+        <div class="code-block" style="font-size:12px;"># STEP 1: Get unique IPs from MongoDB
+unique_ips = raw_data.distinct("ip")
+existing = set(bot_mapping.distinct("ip"))
+ips_to_lookup = [ip for ip in unique_ips
+                 if ip not in existing]
+
+# Enforce 5000 free-tier limit
+if len(ips_to_lookup) > LOOKUP_LIMIT:
+    ips_to_lookup = ips_to_lookup[:LOOKUP_LIMIT]
+
+# STEP 2: Rate-limited lookup loop
+for ip in tqdm(ips_to_lookup):
+    r = requests.get(API_URL, params={...})
+    bot_flag = is_ip_bot(r.json())
+    bot_mapping.insert_one({
+        "ip": ip,
+        "is_bot": bot_flag,
+        "response": data
+    })
+    time.sleep(1.1)
+
+# STEP 3: Build clean_data directly
+map_dict = {m["ip"]: m["is_bot"]
+    for m in bot_mapping.find({})}
+to_insert = [doc for doc in raw_data.find()
+    if map_dict.get(doc["ip"]) is False]
+clean_data.insert_many(to_insert)</div>
+      </div>
+      <div class="panel">
+        <h3>Smart Design Choices</h3>
+        <ul class="list">
+          <li><strong>MongoDB-driven:</strong> IPs come from <code>raw_data.distinct("ip")</code> — no need to re-load JSON</li>
+          <li><strong>Skip existing:</strong> IPs already in bot_mapping are not re-queried (saves API calls on re-runs)</li>
+          <li><strong>5000 cap:</strong> Respects the IPQS free-tier API limit</li>
+          <li><strong>7 security flags:</strong> is_vpn, is_proxy, is_tor, is_hosting, is_relay, <strong>is_mobile</strong>, is_abuse</li>
+          <li><strong>Rate limiting:</strong> 1.1-second time.sleep() between calls keeps free-tier safe</li>
+          <li><strong>Three-step pipeline:</strong> extract IPs → query API → build clean_data in one script</li>
+          <li><strong>Error handling:</strong> On API failure, marks IP as bot (safe default) with error stored in response</li>
+          <li><strong>tqdm progress bar:</strong> Visual feedback during long-running lookups</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 22 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">MongoDB Scripts</p><h2>filtered_data.py & Filtering.py</h2></div>
+      <div class="slide-no">22 / 30</div>
+    </header>
+    <div class="content two">
+      <div class="panel">
+        <h3>filtered_data.py — Simple Filter</h3>
+        <div class="code-block" style="font-size:13px;">clean = db["clean_data"]
+filtered = db["filtered_data"]
+
+non_bot = clean.find({"isBot": False})
+count = 0
+for doc in non_bot:
+    filtered.insert_one(doc)
+    count += 1
+print(f"Inserted {count} non-bot docs")</div>
+        <p style="margin-top:8px;">Reads clean_data, keeps only isBot=False records, inserts into filtered_data collection.</p>
+      </div>
+      <div class="panel accent-green">
+        <h3>Filtering.py — Advanced Pipeline</h3>
+        <ul class="list">
+          <li><strong>Loads bot_mapping</strong> into memory as a dict for O(1) lookups</li>
+          <li><strong>Filters bot traffic:</strong> skips any IP where bot_map[ip] is True</li>
+          <li><strong>Fetches metadata:</strong> calls ESCAP repository API to get publication title, handle, program of work</li>
+          <li><strong>Aggregates monthly stats:</strong> groups views by (pub_id, year, month)</li>
+          <li><strong>Stores in MongoDB:</strong> publications collection + publication_stats_monthly with upsert/$inc</li>
+          <li>Two additional collections: <strong>publications</strong> and <strong>publication_stats_monthly</strong></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 23 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">How to Run</p><h2>Environment Setup</h2></div>
+      <div class="slide-no">23 / 30</div>
+    </header>
+    <div class="content two">
+      <div class="panel accent-green">
+        <h3>Prerequisites & Installation</h3>
+        <div class="code-block" style="font-size:13px;"># Python 3.6+ required
+pip install requests pymongo tqdm
+
+# Install MongoDB Community Edition
+# Ubuntu:
+sudo apt install -y mongodb
+sudo systemctl start mongod
+
+# Verify MongoDB is running:
+mongosh --eval "db.version()"</div>
+      </div>
+      <div class="panel">
+        <h3>Running the Scripts</h3>
+        <div class="code-block" style="font-size:13px;"># 1. Single IP check
+python Main.py
+# → Enter IP when prompted
+
+# 2. Batch processing (sample data)
+python Main2.py
+# → Auto-processes all IPs
+
+# 3. MongoDB pipeline
+python insert_raw_data.py   # Load data
+python bot_mapping.py       # Classify IPs
+python filtered_data.py     # Filter non-bots
+python Filtering.py         # Advanced stats</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 24 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Advanced</p><h2>Filtering.py — ESCAP Repository Integration</h2></div>
+      <div class="slide-no">24 / 30</div>
+    </header>
+    <div class="content two">
+      <div class="panel">
+        <h3>Publication Metadata Fetching</h3>
+        <div class="code-block" style="font-size:12px;">REPO_API = "https://repository.unescap.org
+  /server/api/core/items/"
+
+def fetch_publication_metadata(item_id):
+    url = f"{REPO_API}{item_id}"
+    item = requests.get(url).json()
+    metadata = item.get("metadata", {})
+    return {
+      "pub_id": item_id,
+      "title": metadata.get("dc.title",
+        [{}])[0].get("value"),
+      "handle_id": metadata.get(
+        "dc.identifier.uri",...),
+      "program_of_work": metadata.get(
+        "escap.programme",...),
+    }</div>
+      </div>
+      <div class="panel accent-moss">
+        <h3>Monthly Aggregation</h3>
+        <div class="code-block" style="font-size:12px;">monthly_aggregation = defaultdict(int)
+
+for d in docs:
+    if bot_map.get(d["ip"]) is True:
+        continue  # Skip bots
+    if d["statistics_type"] != "view":
+        continue  # Views only
+
+    pub_id = d["owningItem"][0]
+    ts = datetime.fromisoformat(d["time"])
+    key = (pub_id, ts.year, ts.month)
+    monthly_aggregation[key] += 1
+
+# Upsert into MongoDB
+monthly_stats_col.update_one(
+    {"pub_id": pid, "year": y, "month": m},
+    {"$inc": {"views": views}},
+    upsert=True)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 25 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Architecture</p><h2>Complete Database Schema</h2></div>
+      <div class="slide-no">25 / 30</div>
+    </header>
+    <div class="content">
+      <div class="pipeline" style="grid-template-columns:repeat(5,1fr);">
+        <div class="step"><strong>raw_data</strong><span>All SOLR records (1000+). ip, dns, userAgent, time, type, owningItem</span></div>
+        <div class="step"><strong>bot_mapping</strong><span>ip → is_bot. Full API response cached. Upsert-based, no duplicates.</span></div>
+        <div class="step"><strong>clean_data</strong><span>Records with isBot=False from raw_data cross-referenced with bot_mapping.</span></div>
+        <div class="step"><strong>publications</strong><span>pub_id, title, handle_id, published_date, program_of_work, area_of_work</span></div>
+        <div class="step"><strong>monthly_stats</strong><span>pub_id + year + month → views count. Aggregated from filtered data.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 26-27 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Error Handling</p><h2>Robustness & Edge Cases</h2></div>
+      <div class="slide-no">26 / 30</div>
+    </header>
+    <div class="content three">
+      <div class="panel accent-orange">
+        <h3>API Failures</h3>
+        <p>If AbstractAPI times out or returns an error, the IP is marked as <strong>is_bot=True</strong> (safe default). Error string is stored in the response field for debugging.</p>
+      </div>
+      <div class="panel accent-green">
+        <h3>Rate Limiting</h3>
+        <p>1.1-second delay between API calls. Elapsed time tracking ensures we never exceed the free-tier rate limit. tqdm shows progress during long-running lookups.</p>
+      </div>
+      <div class="panel accent-moss">
+        <h3>Deduplication</h3>
+        <p>MongoDB <code>distinct("ip")</code> guarantees IP uniqueness from raw_data. The <strong>skip-existing check</strong> against bot_mapping ensures we never re-query an IP we've already classified.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Context</p><h2>UNESCAP & DSpace Repository</h2></div>
+      <div class="slide-no">27 / 30</div>
+    </header>
+    <div class="content two">
+      <div class="panel accent-green">
+        <h3>About UNESCAP</h3>
+        <ul class="list">
+          <li><strong>United Nations ESCAP</strong> — Economic and Social Commission for Asia and the Pacific</li>
+          <li>Hosts a digital repository of research publications, policy documents, and reports</li>
+          <li>Repository powered by <strong>DSpace 7</strong> with SOLR-based statistics tracking</li>
+          <li>Accurate download/view counts are essential for measuring publication impact</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Why This Project Matters</h3>
+        <ul class="list">
+          <li>Bot traffic inflates statistics — making it hard to measure real human engagement</li>
+          <li>Filtering bots helps UNESCAP accurately report the <strong>impact of their publications</strong></li>
+          <li>Clean data supports evidence-based decisions on resource allocation and research priorities</li>
+          <li>This tool can be reused for any DSpace 7 repository facing similar bot contamination</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 28 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Key Takeaways</p><h2>What Was Accomplished</h2></div>
+      <div class="slide-no">28 / 30</div>
+    </header>
+    <div class="content two">
+      <div class="panel accent-green">
+        <h3>Deliverables</h3>
+        <ul class="list">
+          <li>✓ <strong>Main.py</strong> — Single-IP bot checker with full analysis report</li>
+          <li>✓ <strong>Main2.py</strong> — Batch processor for SOLR sample data</li>
+          <li>✓ <strong>MongoDB pipeline</strong> — 3+ collections, automated data flow</li>
+          <li>✓ <strong>bot_mapping.py</strong> — Smart IP lookup with dedup, rate limiting, and 5000 cap</li>
+          <li>✓ <strong>Filtering.py</strong> — ESCAP metadata integration + monthly aggregation</li>
+          <li>✓ <strong>Report</strong> — Comprehensive analysis of all 6 security indicators</li>
+        </ul>
+      </div>
+      <div class="panel accent-moss">
+        <h3>Technical Highlights</h3>
+        <ul class="list">
+          <li>71.4% of sample IPs classified as bots (5/7) — validates the filtering approach</li>
+          <li>Dual-API strategy with graceful fallback ensures data completeness</li>
+          <li>MongoDB-based dedup via <code>raw_data.distinct("ip")</code> preserves 5,000 free API lookups</li>
+          <li>Skip-existing logic prevents duplicate entries on re-runs without needing upsert</li>
+          <li>Clean separation of concerns: ingest → classify → filter → aggregate</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 29 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">References</p><h2>Sources & Tools</h2></div>
+      <div class="slide-no">29 / 30</div>
+    </header>
+    <div class="content two">
+      <div class="panel">
+        <h3>Academic References</h3>
+        <ul class="list">
+          <li>Lamothe, M. et al. (2021). A systematic review of API evolution literature. <em>ACM Computing Surveys</em>, 54(8).</li>
+          <li>De, B. (2023). API Management. Apress.</li>
+          <li>Chiapponi, E. et al. (2022). Badpass: Bots taking advantage of proxy as a service. <em>ISPEC</em>, Springer.</li>
+          <li>Irish, K. & Saba, J. (2023). Bots are the new fraud. <em>Personality and Individual Differences</em>, 213.</li>
+          <li>Hardesty, J. et al. (2024). Overcoming Fraudulent Submissions by Bots. <em>JMIR</em>, 26.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Tools & APIs</h3>
+        <ul class="list">
+          <li><strong>AbstractAPI</strong> — IP Intelligence service for security flags</li>
+          <li><strong>ip-api.com</strong> — Free geolocation/ISP fallback</li>
+          <li><strong>MongoDB</strong> — NoSQL database for statistics storage</li>
+          <li><strong>Python 3</strong> — requests, pymongo, tqdm, json, uuid</li>
+          <li><strong>DSpace 7</strong> — Repository platform with SOLR statistics</li>
+          <li><strong>Apache Solr</strong> — Search/statistics engine powering DSpace</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 30 -->
+  <section class="slide">
+    <header class="slide-head">
+      <div><p class="kicker">Thank You</p><h2>Naomie Dalhia Johanne Bambara</h2></div>
+      <div class="slide-no">30 / 30</div>
+    </header>
+    <div class="content split-wide">
+      <div class="panel accent-green">
+        <h3>Project Summary</h3>
+        <p>Successfully designed and implemented a <strong>bot detection and filtering system</strong> for DSpace 7 SOLR statistics using IPQS APIs and MongoDB.</p>
+        <p style="margin-top:12px;">The system processes repository traffic data, classifies IPs using 6 security indicators, and stores only clean human-generated statistics for accurate impact measurement.</p>
+        <p style="margin-top:12px;"><strong>Saint Cloud State University</strong> — Fall 2025 / Spring 2026</p>
+      </div>
+      <div class="grid three">
+        <div class="panel"><span class="big-number">6</span><span class="label">Python modules delivered</span></div>
+        <div class="panel"><span class="big-number">71%</span><span class="label">bot detection rate in sample data</span></div>
+        <div class="panel"><span class="big-number">5</span><span class="label">MongoDB collections designed</span></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<nav class="controls">
+  <button class="nav-btn" id="prev">&lt;</button>
+  <div><div class="progress"><span id="progressBar"></span></div><div class="dots" id="dots"></div></div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span class="counter" id="counter">1 / 30</span>
+    <button class="nav-btn" id="next">&gt;</button>
+  </div>
+</nav>
+</div>
+
+<script>
+// ─── CODE SECTIONS ─────────────────────────────────────────
+const CODE_SECTIONS = {
+"Main": `import requests  # Library for making HTTP requests to external APIs
+import json      # Library for parsing and formatting JSON data
+import uuid      # Library for generating unique identifiers
+from datetime import datetime, timezone  # For handling UTC timestamps and timezone-aware datetime objects
+
+# ----------------------------
+# Combined IP Risk Analyzer
+# ----------------------------
+
+# Primary IP intelligence service
+def get_ip_data_from_service1(ip_address, api_key):
+    """
+    Queries the Abstract  IP Intelligence service to retrieve detailed IP metadata,
+    including security flags (VPN, proxy, TOR, etc.), geolocation, ASN, and company data.
+    
+    Parameters:
+        ip_address (str): The IP address to analyze
+        api_key (str): API key for authentication with AbstractAPI
+    
+    Returns:
+        dict or None: JSON response as a dictionary if successful, otherwise None
+    """
+    url = f"https://ip-intelligence.abstractapi.com/v1/?api_key={api_key}&ip_address={ip_address}"
+    response = requests.get(url)     # Send GET request to the API endpoint
+    if response.status_code == 200:  # Check if the request was successful (HTTP 200)
+        return response.json()       # Parse and return the JSON response
+    else:
+        return None                  # Return None if the request failed (e.g., invalid key, rate limit)
+
+
+# Secondary data source for additional geolocation and ISP information
+def get_ip_data_from_service2(ip_address):
+    """
+    Queries ip-api.com for lightweight geolocation and network data.
+    Used as a fallback or supplementary source for country, city, ISP, and proxy/hosting detection.
+    
+    Parameters:
+        ip_address (str): The IP address to query
+    
+    Returns:
+        dict or None: JSON response if successful, otherwise None
+    """
+    url = f"http://ip-api.com/json/{ip_address}?fields=status,country,regionName,city,isp,org,proxy,hosting"
+    # The 'fields' parameter limits the response to only needed fields to reduce payload size
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return None
+
+
+# Analyze and classify the IP address
+def classify_ip(ip1, ip2):
+    """
+    Combines data from both API services and generates a unified risk analysis report.
+    Extracts security indicators, computes a risk score, and classifies the IP as bot or not.
+    
+    Parameters:
+        ip1 (dict): Response from  IP Quality Score (primary source)
+        ip2 (dict): Response from ip-api.com (secondary source)
+    
+    Returns:
+        dict: Structured report with classification, risk score, and metadata
+    """
+    # Extract core fields from primary service
+    ip_addr = ip1.get("ip_address", "")  # The target IP address
+    company_info = ip1.get("company", {})  # Company/organization owning the IP
+    asn_info = ip1.get("asn", {})          # Autonomous System Number details
+    location_info = ip1.get("location", {})  # Geolocation data
+    timezone_info = ip1.get("timezone", {})  # Local time at IP location
+    security_info = ip1.get("security", {})  # Security and anonymity indicators
+
+    # Extract individual security flags from primary service
+    is_vpn = security_info.get("is_vpn", False)      # Is the IP associated with a VPN?
+    is_proxy = security_info.get("is_proxy", False)  # Is it a known proxy server?
+    is_tor = security_info.get("is_tor", False)      # Is it a TOR exit node?
+    is_hosting = security_info.get("is_hosting", False)  # Is it a hosting/data center IP?
+    is_abuse = security_info.get("is_abuse", False)      # History of abuse reported?
+    is_relay = security_info.get("is_relay", False)      # Is it an email relay or open relay?
+
+    # Risk scoring: Assign 20 points for each active security flag
+    flags = [is_vpn, is_proxy, is_tor, is_hosting, is_abuse, is_relay]
+    risk_score = sum(20 for f in flags if f)  # Total risk: 0–120
+    is_bot = any(flags)  # If any flag is True, classify as potential bot
+
+    # Determine IP type and domain, with fallbacks
+    ip_type = company_info.get("type") or asn_info.get("type") or "Unknown"
+    domain = company_info.get("domain") or asn_info.get("domain") or "N/A"
+    dns = domain  # Alias for DNS; can be extended later
+
+    # Fallback to secondary service for missing geolocation/ISP data
+    country = location_info.get("country") or ip2.get("country")
+    city = location_info.get("city") or ip2.get("city")
+    isp = ip2.get("isp") or asn_info.get("name") or "Unknown"
+
+    # Generate timestamps and unique identifiers
+    local_time = timezone_info.get("local_time", "N/A")  # Estimated local time at IP location
+    record_id = str(uuid.uuid4())  # Generate a unique UUID for this analysis record
+    lookup_time = datetime.now(timezone.utc).isoformat()  # UTC timestamp of the query
+
+    # Build and return the unified analysis report
+    return {
+        "id": record_id,  # Full UUID for internal tracking
+        "uid": f"USR-{record_id[:6].upper()}",  # Shortened user-facing ID
+        "ip_address": ip_addr,
+        "type": ip_type,
+        "domain": domain,
+        "dns": dns,
+        "country": country,
+        "city": city,
+        "isp": isp,
+        "local_time": local_time,
+        "bundleName": "ipRiskAnalyzer",  # Identifier for the analysis module
+        "stats_type": "Bot Detection Result",  # Category for reporting/analytics
+        "time": lookup_time,  # ISO 8601 UTC timestamp
+        "security": {  # Detailed security posture
+            "is_vpn": is_vpn,
+            "is_proxy": is_proxy,
+            "is_tor": is_tor,
+            "is_hosting": is_hosting,
+            "is_abuse": is_abuse,
+            "is_relay": is_relay
+        },
+        "risk_score": risk_score,  # Numeric risk level (0–120)
+        "is_bot": is_bot,  # Boolean: true if any risk flag is active
+        "classification": "BOT DETECTED" if is_bot else "NOT A BOT"  # Final verdict
+    }
+
+
+# ----------------------------
+# Main Execution
+# ----------------------------
+if __name__ == "__main__":
+    """
+    Entry point of the script. Prompts the user for an IP address, queries both APIs,
+    combines the results, and prints a formatted analysis report.
+    """
+    # Prompt user to input the IP address to analyze
+    ip_address = input("Enter the IP address to check: ").strip()
+    api_key = "4948bceaa98347938156395ed182dcf2" 
+
+    print(f"\\nChecking IP address: {ip_address}\\n")
+
+    # Query both external IP intelligence services
+    data_service1 = get_ip_data_from_service1(ip_address, api_key)
+    data_service2 = get_ip_data_from_service2(ip_address)
+
+    # Output raw JSON responses for debugging and transparency
+    print(json.dumps(data_service1, indent=4))
+    print(json.dumps(data_service2, indent=4))
+
+    # Process and display results only if both API calls succeeded
+    if data_service1 and data_service2:
+        report = classify_ip(data_service1, data_service2)  # Generate unified report
+
+        # Print formatted, human-readable analysis report
+        print("\\n======== IP Analysis Report ========")
+        print(f"Unique ID: {report['uid']}")
+        print(f"IP Address: {report['ip_address']}")
+        print(f"Country: {report['country']}")
+        print(f"City: {report['city']}")
+        print(f"ISP: {report['isp']}")
+        print(f"Domain/DNS: {report['domain']}")
+        print(f"Type: {report['type']}")
+        print(f"Local Time: {report['local_time']}")
+        print("--------------------------------------")
+        print("Security Indicators:")
+        for key, value in report["security"].items():
+            print(f"  {key}: {value}")
+        print("--------------------------------------")
+        print(f"Risk Score: {report['risk_score']}")
+        print(f"Is Bot: {report['is_bot']}")
+        print(f"Final Classification: {report['classification']}")
+        print("======================================")
+    else:
+        # Handle failure: one or both API requests failed
+        print("Error: Could not retrieve IP data. Check your network or API access.")`,
+"Main2": `# ------------------------------------------------------------
+# Bot-Detection using AbstractAPI + ip-api.com
+# Reads the SOLR sample JSON that is embedded in the script,
+# checks every IP address automatically and prints a full report.
+# ------------------------------------------------------------
+
+import json                     # Parse / dump JSON data
+import requests                 # HTTP client for external APIs
+import uuid                     # Generate unique record identifiers
+from datetime import datetime, timezone   # UTC timestamps
+from typing import List, Dict, Any       # Type hints for clarity
+import time                     # Rate-limit delay between requests
+
+ABSTRACT_API_KEY = "4948bceaa98347938156395ed182dcf2"  
+ABSTRACT_ENDPOINT = "https://ip-intelligence.abstractapi.com/v1/"
+IPAPI_ENDPOINT = "http://ip-api.com/json/{ip}?fields=status,country,regionName,city,isp,org,proxy,hosting"
+REQUEST_DELAY = 1.1         
+
+
+# ------------------------------------------------------------
+# 1. Read SOLR sample data from the sample statistics JSON file
+# ------------------------------------------------------------
+SAMPLE_SOLR_JSON = '''
+{
+  "response": {
+    "docs": [
+      {"ip":"66.249.80.196","dns":"google-proxy-66-249-80-196.google.com","userAgent":"Mozilla/5.0 (compatible; Google AppsViewer; http://drive.google.com)","isBot":true},
+      {"ip":"66.249.80.201","dns":"google-proxy-66-249-80-201.google.com","userAgent":"Mozilla/5.0 (compatible; Google AppsViewer; http://drive.google.com)","isBot":true},
+      {"ip":"2a06:98c0:3600::103","dns":"2a06:98c0:3600:0:0:0:0:103","userAgent":"Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.6834.159 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)","isBot":true},
+      {"ip":"2a06:98c0:3600::103","dns":"2a06:98c0:3600:0:0:0:0:103","userAgent":"Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.6834.159 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)","isBot":true},
+      {"ip":"2a06:98c0:3600::103","dns":"2a06:98c0:3600:0:0:0:0:103","userAgent":"Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.6834.159 Mobile Safari/537.36 (compatible; GoogleOther)","isBot":false},
+      {"ip":"69.160.14.238","dns":"69.160.14.238","userAgent":"Mozilla/5.0 (Android 14; Mobile; rv:109.0) Gecko/118.0 Firefox/118.0","isBot":false},
+      {"ip":"74.125.214.99","dns":"google-proxy-74-125-214-99.google.com","userAgent":"Mozilla/5.0 (compatible; Google AppsViewer; http://drive.google.com)","isBot":true},
+      {"ip":"102.140.205.7","dns":"102.140.205.7","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36","isBot":false},
+      {"ip":"52.167.144.219","dns":"msnbot-52-167-144-219.search.msn.com","userAgent":"Mozilla/5.0 (iPhone; CPU iPhone OS 7_0 like Mac OS X) AppleWebKit/537.51.1 (KHTML, like Gecko) Version/7.0 Mobile/11A465 Safari/9537.53 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)","isBot":true},
+      {"ip":"52.167.144.219","dns":"msnbot-52-167-144-219.search.msn.com","userAgent":"Mozilla/5.0 (iPhone; CPU iPhone OS 7_0 like Mac OS X) AppleWebKit/537.51.1 (KHTML, like Gecko) Version/7.0 Mobile/11A465 Safari/9537.53 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)","isBot":true}
+    ]
+  }
+}
+'''
+# ------------------------------------------------------------
+
+def load_solr_docs() -> List[Dict[str, Any]]:
+    """Parse the embedded SOLR JSON and return the list of docs."""
+    data = json.loads(SAMPLE_SOLR_JSON)          # Convert JSON string → Python dict
+    return data["response"]["docs"]              # Return only the document array
+
+
+def extract_unique_ips(docs: List[Dict[str, Any]]) -> List[str]:
+    """Collect every distinct IP address from the docs."""
+    ips = set()                                   # Use a set → automatic deduplication
+    for doc in docs:                              # Iterate each record
+        ip = doc.get("ip")
+        if ip:
+            ips.add(ip.strip())                   # Normalise whitespace
+    return sorted(ips)                            # Return sorted list (deterministic order)
+
+
+# ------------------------------------------------------------
+# 2. API wrappers
+# ------------------------------------------------------------
+def get_ip_data_from_abstract(ip_address: str) -> Dict[str, Any] | None:
+    """Query AbstractAPI IP-Intelligence (primary source)."""
+    url = f"{ABSTRACT_ENDPOINT}?api_key={ABSTRACT_API_KEY}&ip_address={ip_address}"
+    try:
+        resp = requests.get(url, timeout=10)      # 10-second timeout
+        resp.raise_for_status()                  # Raise on HTTP error
+        return resp.json()                       # Successful → dict
+    except requests.RequestException as e:
+        print(f"[!] AbstractAPI error for {ip_address}: {e}")
+        return None
+
+
+def get_ip_data_from_ipapi(ip_address: str) -> Dict[str, Any] | None:
+    """Query ip-api.com (fallback for geo/ISP)."""
+    url = IPAPI_ENDPOINT.format(ip=ip_address)
+    try:
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+    except requests.RequestException as e:
+        print(f"[!] ip-api.com error for {ip_address}: {e}")
+        return None
+
+
+# ------------------------------------------------------------
+# 3. Classification logic (identical to your original code)
+# ------------------------------------------------------------
+def classify_ip(abstract_data: Dict[str, Any], ipapi_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Combine both API responses, compute the 6-flag risk score and decide bot / not-bot.
+    """
+    # ---- Primary fields from AbstractAPI ---------------------------------
+    ip_addr = abstract_data.get("ip_address", "")
+    company = abstract_data.get("company", {})
+    asn = abstract_data.get("asn", {})
+    location = abstract_data.get("location", {})
+    tz = abstract_data.get("timezone", {})
+    security = abstract_data.get("security", {})
+
+    # ---- Extract the 6 security flags ------------------------------------
+    is_vpn     = security.get("is_vpn", False)
+    is_proxy   = security.get("is_proxy", False)
+    is_tor     = security.get("is_tor", False)
+    is_hosting = security.get("is_hosting", False)
+    is_abuse   = security.get("is_abuse", False)
+    is_relay   = security.get("is_relay", False)
+
+    # ---- Simple risk model: 20 points per active flag --------------------
+    flags = [is_vpn, is_proxy, is_tor, is_hosting, is_abuse, is_relay]
+    risk_score = sum(20 for f in flags if f)          # 0 … 120
+    is_bot = any(flags)                               # any flag → bot
+
+    # ---- Domain / type fall-backs -----------------------------------------
+    ip_type = company.get("type") or asn.get("type") or "Unknown"
+    domain = company.get("domain") or asn.get("domain") or "N/A"
+
+    # ---- Geo/ISP fall-backs using ip-api.com -----------------------------
+    country = location.get("country") or ipapi_data.get("country")
+    city    = location.get("city")    or ipapi_data.get("city")
+    isp     = ipapi_data.get("isp")   or asn.get("name") or "Unknown"
+
+    # ---- Timestamps & IDs ------------------------------------------------
+    local_time = tz.get("local_time", "N/A")
+    record_id = str(uuid.uuid4())
+    lookup_utc = datetime.now(timezone.utc).isoformat()
+
+    # ---- Assemble final report -------------------------------------------
+    return {
+        "id": record_id,
+        "uid": f"USR-{record_id[:6].upper()}",
+        "ip_address": ip_addr,
+        "type": ip_type,
+        "domain": domain,
+        "dns": domain,
+        "country": country,
+        "city": city,
+        "isp": isp,
+        "local_time": local_time,
+        "bundleName": "ipRiskAnalyzer",
+        "stats_type": "Bot Detection Result",
+        "time": lookup_utc,
+        "security": {
+            "is_vpn": is_vpn,
+            "is_proxy": is_proxy,
+            "is_tor": is_tor,
+            "is_hosting": is_hosting,
+            "is_abuse": is_abuse,
+            "is_relay": is_relay
+        },
+        "risk_score": risk_score,
+        "is_bot": is_bot,
+        "classification": "BOT DETECTED" if is_bot else "NOT A BOT"
+    }
+
+
+# ------------------------------------------------------------
+# 4. Reporting helpers
+# ------------------------------------------------------------
+def print_individual_report(report: Dict[str, Any]) -> None:
+    """Pretty-print a single IP analysis."""
+    print("\\n" + "="*50)
+    print(f"UID            : {report['uid']}")
+    print(f"IP             : {report['ip_address']}")
+    print(f"Country / City : {report['country']} / {report['city']}")
+    print(f"ISP            : {report['isp']}")
+    print(f"Domain / DNS   : {report['domain']}")
+    print(f"Type           : {report['type']}")
+    print("-"*30)
+    print("Security Flags:")
+    for k, v in report["security"].items():
+        print(f"  {k:12}: {v}")
+    print("-"*30)
+    print(f"Risk Score     : {report['risk_score']}/120")
+    print(f"Bot?           : {report['is_bot']} → {report['classification']}")
+    print("="*50)
+
+
+def print_summary_table(reports: List[Dict[str, Any]]) -> None:
+    """Print a compact table with all results."""
+    header = f"{'IP':<20} {'BOT':<6} {'SCORE':<6} {'FLAGS'}"
+    print("\\n" + header)
+    print("-" * len(header))
+    for r in reports:
+        flags = [k[3:] for k, v in r["security"].items() if v]  
+        flag_str = ",".join(flags) if flags else "-"
+        bot_mark = "YES" if r["is_bot"] else "NO"
+        print(f"{r['ip_address']:<20} {bot_mark:<6} {r['risk_score']:<6} {flag_str}")
+    print("-" * len(header))
+    bots = sum(1 for r in reports if r["is_bot"])
+    print(f"SUMMARY: {bots}/{len(reports)} IPs classified as BOT "
+          f"({bots/len(reports):.1%})")
+
+
+# ------------------------------------------------------------
+# 5. Main driver – processes every IP automatically
+# ------------------------------------------------------------
+def main() -> None:
+    print("[*] Loading SOLR sample statistics data …")
+    docs = load_solr_docs()
+    print(f"[*] Found {len(docs)} records → extracting unique IPs …")
+    ips = extract_unique_ips(docs)
+    print(f"[*] {len(ips)} distinct IP addresses to analyse.\\n")
+
+    all_reports: List[Dict[str, Any]] = []
+
+    for idx, ip in enumerate(ips, start=1):
+        print(f"[{idx}/{len(ips)}] Querying {ip} …", end=" ")
+
+        # ---- 1. Primary API ------------------------------------------------
+        abstract = get_ip_data_from_abstract(ip)
+        if not abstract:
+            print("AbstractAPI failed → skipping")
+            continue
+
+        # ---- 2. Fallback API ------------------------------------------------
+        ipapi = get_ip_data_from_ipapi(ip) or {}
+
+        # ---- 3. Classification ---------------------------------------------
+        report = classify_ip(abstract, ipapi)
+        all_reports.append(report)
+
+        # ---- 4. Show per-IP result -----------------------------------------
+        print(f"Score={report['risk_score']} → {'BOT' if report['is_bot'] else 'HUMAN'}")
+        print_individual_report(report)
+
+        # ---- Rate-limit ----------------------------------------------------
+        if idx < len(ips):
+            time.sleep(REQUEST_DELAY)
+
+    # ---- Final summary ----------------------------------------------------
+    print_summary_table(all_reports)
+
+
+if __name__ == "__main__":
+    main()`,
+"bot_mapping": `import requests
+from pymongo import MongoClient
+from tqdm import tqdm
+import time
+
+# -------------------------
+# CONFIG
+# -------------------------
+MONGO_URI = "mongodb://localhost:27017"
+DB_NAME = "solr_statistics_dbS"
+RAW_COL = "raw_data"
+BOT_MAP_COL = "bot_mapping"
+CLEAN_COL = "clean_data"
+
+ABSTRACT_API_KEY = "4948bceaa98347938156395ed182dcf2"
+API_URL = "https://ip-intelligence.abstractapi.com/v1/"
+
+LOOKUP_LIMIT = 5000
+
+# -------------------------
+# CONNECT TO MONGO
+# -------------------------
+client = MongoClient(MONGO_URI)
+db = client[DB_NAME]
+
+raw_data = db[RAW_COL]
+bot_mapping = db[BOT_MAP_COL]
+clean_data = db[CLEAN_COL]
+
+
+# -------------------------
+# STEP 1: UNIQUE IP EXTRACTION
+# -------------------------
+# This ensures it donsn't exceed your API limits unnecessarily.
+unique_ips = raw_data.distinct("ip")
+
+existing_ips = set(bot_mapping.distinct("ip"))
+ips_to_lookup = [ip for ip in unique_ips if ip not in existing_ips]
+
+if len(ips_to_lookup) > LOOKUP_LIMIT:
+    ips_to_lookup = ips_to_lookup[:LOOKUP_LIMIT]
+
+
+# -------------------------
+# BOT LOGIC
+# -------------------------
+def is_ip_bot(api_response):
+    sec = api_response.get("security", {})
+
+    flags = [
+        sec.get("is_vpn", False),
+        sec.get("is_proxy", False),
+        sec.get("is_tor", False),
+        sec.get("is_hosting", False),
+        sec.get("is_relay", False),
+        sec.get("is_mobile", False),
+        sec.get("is_abuse", False),
+    ]
+
+    return any(flags)
+
+
+# -------------------------
+# STEP 2: LOOKUP NEW IPS WITH PROGRESS BAR + RATE LIMIT
+# -------------------------
+print(f"Starting lookup of {len(ips_to_lookup)} IP addresses...\\n")
+
+for ip in tqdm(ips_to_lookup, desc="IP Lookup Progress", unit="ip"):
+    try:
+        r = requests.get(
+            API_URL,
+            params={"api_key": ABSTRACT_API_KEY, "ip_address": ip},
+            timeout=10
+        )
+        data = r.json()
+
+        bot_flag = is_ip_bot(data)
+
+        bot_mapping.insert_one({
+            "ip": ip,
+            "is_bot": bot_flag,
+            "response": data
+        })
+
+    except Exception as ex:
+        bot_mapping.insert_one({
+            "ip": ip,
+            "is_bot": True,
+            "response": {"error": str(ex)}
+        })
+
+    # Enforce 1 request/sec (safe)
+    time.sleep(1.1)
+
+
+# -------------------------
+# STEP 3: FILTER CLEAN DATA
+# -------------------------
+map_dict = {m["ip"]: m["is_bot"] for m in bot_mapping.find({}, {"ip": 1, "is_bot": 1})}
+
+to_insert = []
+for doc in raw_data.find():
+    ip = doc.get("ip")
+    if ip is None:
+        continue
+
+    if map_dict.get(ip) is False:
+        to_insert.append(doc)
+
+if to_insert:
+    clean_data.insert_many(to_insert)
+
+print("Process complete.")`,
+"insert_raw_data": `from pymongo import MongoClient
+import json
+
+# 1. Connect to your local MongoDB instance
+client = MongoClient("mongodb://localhost:27017/")
+
+# 2. Create or connect to the database
+db = client["solr_statistics_dbS"]
+
+# 3. Create the three collections
+raw_data_col = db["raw_data"]            # for original data
+bot_mapping_col = db["bot_mapping"]      # empty for now
+
+
+# 4. Load your JSON file
+with open("data_may_01_limit_1000.json", "r", encoding="utf-8") as file:
+    data = json.load(file)
+
+# 5. Extract the documents under "response" -> "docs"
+docs = data.get("response", {}).get("docs", [])
+
+# Safety check
+if not docs:
+    print("No documents found in the JSON file.")
+else:
+    # 6. Insert ONLY into raw_data
+    raw_data_col.insert_many(docs)
+    print(f"Inserted {len(docs)} documents into raw_data collection.")
+
+# 7. Read a few records to confirm insertion
+print("\\nSample entries from raw_data:")
+for doc in raw_data_col.find().limit(5):
+    print(doc)
+`,
+"filtered_data": `from pymongo import MongoClient
+
+# 1. Connect to local MongoDB
+client = MongoClient("mongodb://localhost:27017/")
+
+# 2. Connect to the database
+db = client["solr_statistics_dbS"]
+
+# 3. Connect to the collections
+clean_collection = db["clean_data"]
+filtered_collection = db["filtered_data"]
+
+# 4. Filter documents where isBot is False
+non_bot_docs = clean_collection.find({"isBot": False})
+
+# 5. Insert filtered documents into filtered_data collection
+count = 0
+for doc in non_bot_docs:
+    filtered_collection.insert_one(doc)
+    count += 1
+
+print(f"Inserted {count} non-bot documents into filtered_data collection.")
+`,
+"Filtering": `"""
+process_raw_data_and_generate_stats.py
+
+Purpose:
+- Filter out bot-generated traffic using bot_mapping collection
+- Fetch publication metadata from ESCAP repository API
+- Aggregate usage data into monthly statistics
+- Store results in MongoDB according to the database design
+
+This script DOES NOT store raw JSON data.
+"""
+
+import json
+import requests
+from pymongo import MongoClient
+from datetime import datetime
+from collections import defaultdict
+
+# ======================================================
+# CONFIGURATION
+# ======================================================
+
+MONGO_URI = "mongodb://localhost:27017"
+DB_NAME = "solr_statistics_dbS"
+
+BOT_MAPPING_COLLECTION = "bot_mapping"
+PUBLICATIONS_COLLECTION = "publications"
+MONTHLY_STATS_COLLECTION = "publication_stats_monthly"
+
+RAW_JSON_FILE = "data_may_01_limit_1000.json"
+
+REPOSITORY_API_BASE = "https://repository.unescap.org/server/api/core/items/"
+
+REQUEST_TIMEOUT = 15  # seconds
+
+# ======================================================
+# DATABASE CONNECTION
+# ======================================================
+
+client = MongoClient(MONGO_URI)
+db = client[DB_NAME]
+
+bot_mapping_col = db[BOT_MAPPING_COLLECTION]
+publications_col = db[PUBLICATIONS_COLLECTION]
+monthly_stats_col = db[MONTHLY_STATS_COLLECTION]
+
+# ======================================================
+# LOAD BOT MAPPING INTO MEMORY
+# ======================================================
+
+print("Loading bot mapping...")
+bot_map = {
+    doc["ip"]: doc["is_bot"]
+    for doc in bot_mapping_col.find({}, {"ip": 1, "is_bot": 1})
+}
+print(f"Loaded {len(bot_map)} IPs from bot_mapping")
+
+# ======================================================
+# LOAD RAW JSON DATA
+# ======================================================
+
+print("Loading raw JSON data...")
+with open(RAW_JSON_FILE, "r", encoding="utf-8") as f:
+    raw_data = json.load(f)
+
+docs = raw_data["response"]["docs"]
+print(f"Loaded {len(docs)} raw records")
+
+# ======================================================
+# FUNCTION: FETCH PUBLICATION METADATA
+# ======================================================
+
+def fetch_publication_metadata(item_id):
+    """
+    Fetch publication details from ESCAP repository API
+    using the owningItem ID from raw data.
+    """
+    url = f"{REPOSITORY_API_BASE}{item_id}"
+
+    try:
+        response = requests.get(url, timeout=REQUEST_TIMEOUT)
+        if response.status_code != 200:
+            return None
+
+        item = response.json()
+        metadata = item.get("metadata", {})
+
+        return {
+            "pub_id": item_id, 
+            "title": metadata.get("dc.title", [{}])[0].get("value"),
+            "handle_id": metadata.get("dc.identifier.uri", [{}])[0].get("value"),
+            "published_date": metadata.get("dc.date.issued", [{}])[0].get("value"),
+            "program_of_work": metadata.get("escap.programme", [{}])[0].get("value"),
+            "area_of_work": metadata.get("escap.areaOfWork", [{}])[0].get("value"),
+        }
+
+    except Exception as e:
+        print(f"Repository API error for {item_id}: {e}")
+        return None
+
+# ======================================================
+# AGGREGATION STRUCTURE
+# ======================================================
+
+monthly_aggregation = defaultdict(int)
+
+# ======================================================
+# PROCESS RAW DATA
+# ======================================================
+
+print("Processing raw data...")
+
+for d in docs:
+    ip = d.get("ip")
+
+    # 1. Filter bot traffic
+    if bot_map.get(ip) is True:
+        continue
+
+    # 2. Keep only valid usage events
+    if d.get("statistics_type") != "view":
+        continue
+
+    # 3. Get publication ID
+    item_list = d.get("owningItem", [])
+    if not item_list:
+        continue
+
+    pub_id = item_list[0]  # changed variable name
+
+    # 4. Extract date
+    ts = datetime.fromisoformat(d["time"].replace("Z", ""))
+    year = ts.year
+    month = ts.month
+
+    # 5. Aggregate
+    key = (pub_id, year, month)
+    monthly_aggregation[key] += 1
+
+print(f"Aggregated {len(monthly_aggregation)} monthly publication records")
+
+# ======================================================
+# STORE RESULTS IN DATABASE
+# ======================================================
+
+print("Storing results in MongoDB...")
+
+for (pub_id, year, month), views in monthly_aggregation.items():
+
+    # Insert publication metadata if missing
+    if not publications_col.find_one({"pub_id": pub_id}):
+        metadata = fetch_publication_metadata(pub_id)
+        if metadata:
+            publications_col.insert_one(metadata)
+
+    # Upsert monthly statistics
+    monthly_stats_col.update_one(
+        {
+            "pub_id": pub_id,  # changed here
+            "year": year,
+            "month": month
+        },
+        {
+            "$inc": {"views": views}
+        },
+        upsert=True
+    )
+
+print("Processing completed successfully.")
+`
+};
+
+// ─── IP RESULTS DATABASE ───────────────────────────────────
+const IP_DB = {"66.249.80.196": {"country": "United States", "city": "Mountain View", "isp": "Google LLC", "domain": "www.google.com", "type": "hosting", "is_vpn": false, "is_proxy": false, "is_tor": false, "is_hosting": true, "is_abuse": false, "is_relay": true, "score": 40, "bot": true, "dns": "google-proxy-66-249-80-196.google.com"}, "66.249.80.201": {"country": "United States", "city": "Mountain View", "isp": "Google LLC", "domain": "www.google.com", "type": "hosting", "is_vpn": false, "is_proxy": false, "is_tor": false, "is_hosting": true, "is_abuse": false, "is_relay": true, "score": 40, "bot": true, "dns": "google-proxy-66-249-80-201.google.com"}, "2a06:98c0:3600::103": {"country": "United States", "city": "London", "isp": "Cloudflare, Inc.", "domain": "cloudflare.com", "type": "hosting", "is_vpn": false, "is_proxy": false, "is_tor": false, "is_hosting": true, "is_abuse": false, "is_relay": true, "score": 40, "bot": true, "dns": "2a06:98c0:3600::103"}, "69.160.14.238": {"country": "Myanmar", "city": "Yangon", "isp": "Nine Communications", "domain": "ooredoo.com.mm", "type": "isp", "is_vpn": false, "is_proxy": false, "is_tor": false, "is_hosting": false, "is_abuse": false, "is_relay": false, "score": 0, "bot": false, "dns": "69.160.14.238"}, "74.125.214.99": {"country": "United States", "city": "Mountain View", "isp": "Google LLC", "domain": "www.google.com", "type": "hosting", "is_vpn": false, "is_proxy": false, "is_tor": false, "is_hosting": true, "is_abuse": false, "is_relay": true, "score": 40, "bot": true, "dns": "google-proxy-74-125-214-99.google.com"}, "102.140.205.7": {"country": "Kenya", "city": "Nairobi", "isp": "Wananchi Group", "domain": "wananchi.com", "type": "isp", "is_vpn": false, "is_proxy": false, "is_tor": false, "is_hosting": false, "is_abuse": false, "is_relay": false, "score": 0, "bot": false, "dns": "102.140.205.7"}, "52.167.144.219": {"country": "United States", "city": "Boydton", "isp": "Microsoft Corporation", "domain": "www.microsoft.com", "type": "hosting", "is_vpn": false, "is_proxy": false, "is_tor": false, "is_hosting": true, "is_abuse": false, "is_relay": true, "score": 40, "bot": true, "dns": "msnbot-52-167-144-219.search.msn.com"}};
+
+// ─── SLIDE NAVIGATION ──────────────────────────────────────
+const slides=[...document.querySelectorAll(".slide")];
+const total=slides.length;
+let current=0;
+function go(n){
+  slides[current].classList.remove("active");
+  current=Math.max(0,Math.min(total-1,n));
+  slides[current].classList.add("active");
+  document.getElementById("counter").textContent=`${current+1} / ${total}`;
+  document.getElementById("progressBar").style.width=`${((current+1)/total)*100}%`;
+  const dots=document.getElementById("dots");
+  dots.innerHTML="";
+  for(let i=0;i<total;i++){
+    const d=document.createElement("button");
+    d.className="dot-nav"+(i===current?" active":"");
+    d.addEventListener("click",()=>go(i));
+    dots.appendChild(d);
+  }
+}
+document.getElementById("prev").addEventListener("click",()=>go(current-1));
+document.getElementById("next").addEventListener("click",()=>go(current+1));
+document.addEventListener("keydown",e=>{
+  const tag=document.activeElement?.tagName;
+  if(tag==="INPUT"||tag==="TEXTAREA")return;
+  if(e.key==="ArrowRight"||e.key===" "){e.preventDefault();go(current+1);}
+  if(e.key==="ArrowLeft")go(current-1);
+});
+
+// ─── CODE VIEWER ───────────────────────────────────────────
+document.getElementById("codeDisplay").textContent=CODE_SECTIONS["Main"]||"";
+document.querySelectorAll("#codeTabs .demo-btn").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll("#codeTabs .demo-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("codeDisplay").textContent=CODE_SECTIONS[btn.dataset.code]||"";
+  });
+});
+
+// ─── IP BOT CHECKER DEMO ──────────────────────────────────
+function fillIP(ip){
+  document.getElementById("ipInput").value=ip;
+  document.getElementById("ipInput").focus();
+  checkIP();
+}
+
+const FLAG_NAMES = ["vpn","proxy","tor","hosting","abuse","relay"];
+
+function setLoadingState(){
+  // Activate scan line + scanning shimmer
+  document.getElementById("scanLine")?.classList.add("scanning");
+  document.querySelector(".cyber-score")?.classList.add("scanning");
+
+  FLAG_NAMES.forEach(f => {
+    const card = document.getElementById("fc-"+f);
+    card.className = "cyber-flag";
+    card.querySelector(".flag-val").textContent = "...";
+    card.querySelector(".flag-val").style.color = "";
+  });
+  document.getElementById("scoreFill").style.width = "0%";
+  document.getElementById("scoreLabel").textContent = "▸ SCANNING TARGET...";
+
+  const v = document.getElementById("verdict");
+  v.className = "cyber-verdict scanning";
+  v.textContent = "▸ querying ipwho.is...";
+
+  document.getElementById("infoGeo").textContent = "...";
+  document.getElementById("infoISP").textContent = "...";
+  document.getElementById("infoType").textContent = "...";
+}
+
+function clearScanning(){
+  document.getElementById("scanLine")?.classList.remove("scanning");
+  document.querySelector(".cyber-score")?.classList.remove("scanning");
+}
+
+function renderResult(data, sourceLabel){
+  clearScanning();
+
+  // Animate flags with 3D flip reveal
+  FLAG_NAMES.forEach((f,i)=>{
+    const card = document.getElementById("fc-"+f);
+    const val = data["is_"+f];
+    setTimeout(()=>{
+      card.className = "cyber-flag revealing " + (val ? "danger" : "safe");
+      card.querySelector(".flag-val").textContent = val ? "TRUE" : "FALSE";
+      // Remove revealing class after animation completes
+      setTimeout(() => card.classList.remove("revealing"), 600);
+    }, i * 130);
+  });
+
+  // Score bar fills
+  setTimeout(()=>{
+    const pct = (data.score/120)*100;
+    document.getElementById("scoreFill").style.width = pct + "%";
+    const srcSuffix = sourceLabel ? ` · ${sourceLabel.toUpperCase()}` : "";
+    document.getElementById("scoreLabel").textContent = `RISK SCORE · ${data.score} / 120${srcSuffix}`;
+  }, 850);
+
+  // Verdict appears with dramatic entrance
+  setTimeout(()=>{
+    const v = document.getElementById("verdict");
+    v.className = "cyber-verdict " + (data.bot ? "bot" : "human");
+    v.textContent = data.bot ? "⚠  BOT DETECTED  ⚠" : "✓  HUMAN TRAFFIC  ✓";
+  }, 1100);
+
+  // Info row
+  document.getElementById("infoGeo").textContent = `${data.country || "—"} · ${data.city || "—"}`;
+  document.getElementById("infoISP").textContent = data.isp || "—";
+  document.getElementById("infoType").textContent = `${data.type || "—"} · ${data.domain || "—"}`;
+}
+
+function renderError(msg){
+  clearScanning();
+  FLAG_NAMES.forEach(f => {
+    const card = document.getElementById("fc-"+f);
+    card.className = "cyber-flag";
+    card.querySelector(".flag-val").textContent = "N/A";
+  });
+  document.getElementById("scoreFill").style.width = "0%";
+  document.getElementById("scoreLabel").textContent = "LOOKUP FAILED";
+  const v = document.getElementById("verdict");
+  v.className = "cyber-verdict bot";
+  v.textContent = "⚠  " + msg;
+  document.getElementById("infoGeo").textContent = "—";
+  document.getElementById("infoISP").textContent = "—";
+  document.getElementById("infoType").textContent = "—";
+}
+
+// Heuristic classification from ipwho.is data (no security flags available)
+function parseIPWhoIs(data){
+  const isp = (data.connection?.isp || "").toLowerCase();
+  const org = (data.connection?.org || "").toLowerCase();
+  const domain = (data.connection?.domain || "").toLowerCase();
+  const blob = isp + " " + org + " " + domain;
+
+  // Known datacenter / cloud / hosting providers
+  const hostingPatterns = [
+    "google llc","google cloud","amazon","aws","amazon technologies",
+    "microsoft","azure","cloudflare","digitalocean","ovh","linode","vultr",
+    "akamai","fastly","hetzner","alibaba","oracle cloud","ibm cloud",
+    "rackspace","datacenter","data center","hosting","dedicated","leaseweb",
+    "godaddy","namecheap","contabo","scaleway","upcloud","kamatera",
+    "tencent cloud","bytedance","baidu cloud"
+  ];
+  const relayPatterns = ["cloudflare","fastly","akamai","cdn","apple private relay","icloud relay"];
+
+  const is_hosting = hostingPatterns.some(p => blob.includes(p));
+  const is_relay   = relayPatterns.some(p => blob.includes(p));
+
+  const flags = {
+    is_vpn: false, is_proxy: false, is_tor: false,
+    is_hosting, is_abuse: false, is_relay,
+  };
+  const score = Object.values(flags).filter(Boolean).length * 20;
+
+  return {
+    ...flags,
+    score,
+    bot: score > 0,
+    country: data.country || "—",
+    city: data.city || "—",
+    isp: data.connection?.isp || data.connection?.org || "—",
+    type: is_hosting ? "hosting" : "isp",
+    domain: data.connection?.domain || "—",
+  };
+}
+
+async function liveLookup(ip){
+  // Use ipwho.is — free, no API key, CORS-enabled, HTTPS native.
+  // Safe to deploy publicly since no credentials are exposed.
+  const resp = await fetch(`https://ipwho.is/${encodeURIComponent(ip)}`);
+  const data = await resp.json();
+  if (!data || data.success === false) {
+    throw new Error(data.message || "ipwho.is rejected the request");
+  }
+  return { result: parseIPWhoIs(data), source: "ipwho.is (heuristic)" };
+}
+
+async function checkIP(){
+  const ip = document.getElementById("ipInput").value.trim();
+  if (!ip) return;
+
+  // Try local sample database first (instant + reliable for demo IPs)
+  const sample = IP_DB[ip];
+  if (sample) {
+    renderResult(sample, "embedded sample data");
+    return;
+  }
+
+  // Otherwise do a live API lookup
+  setLoadingState();
+  try {
+    const { result, source } = await liveLookup(ip);
+    renderResult(result, source);
+  } catch (err) {
+    renderError("Lookup failed: " + (err.message || err) + ". Check the IP format and your network connection.");
+  }
+}
+
+document.getElementById("ipInput")?.addEventListener("keydown",e=>{
+  if(e.key==="Enter"){e.preventDefault();e.stopPropagation();checkIP();}
+});
+
+// ─── INIT ──────────────────────────────────────────────────
+go(0);
+</script>
+</body>
+</html>
